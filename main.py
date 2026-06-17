@@ -2389,6 +2389,7 @@ WATCHLIST = ["20MICRONS",
 EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
 POLL_INTERVAL  = 3   # seconds between each NSE check
 SEEN_FILE      = "seen_announcements.json"
@@ -2478,47 +2479,55 @@ def fetch_announcements():
 # ============================================================
 
 def send_email(announcement):
-    symbol   = announcement.get("symbol", "N/A")
-    subject  = announcement.get("subject", "No Subject")
-    an_date  = announcement.get("exchdisstime", "")
+    symbol = announcement.get("symbol", "N/A")
+
+    subject = (
+        announcement.get("subject")
+        or announcement.get("desc")
+        or "NSE Announcement"
+    )
+
+    an_date = announcement.get("exchdisstime", "")
     pdf_link = announcement.get("attchmntFile", "")
 
-    if pdf_link and not pdf_link.startswith("http"):
-        pdf_link = f"https://nsearchives.nseindia.com/{pdf_link}"
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"NSE Alert: {symbol} — {subject}"
-    msg["From"]    = EMAIL_SENDER
-    msg["To"]      = EMAIL_TO
-
     body_html = f"""
-    <html><body style="font-family:Arial,sans-serif;padding:20px;">
-      <h2 style="color:#1a1a2e;">📢 NSE Announcement Alert</h2>
-      <table style="border-collapse:collapse;width:100%;">
-        <tr><td style="padding:8px;font-weight:bold;width:140px;">Company</td>
-            <td style="padding:8px;">{symbol}</td></tr>
-        <tr style="background:#f5f5f5;"><td style="padding:8px;font-weight:bold;">Subject</td>
-            <td style="padding:8px;">{subject}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold;">Time</td>
-            <td style="padding:8px;">{an_date}</td></tr>
-        <tr style="background:#f5f5f5;"><td style="padding:8px;font-weight:bold;">PDF</td>
-            <td style="padding:8px;">
-              {"<a href='" + pdf_link + "' style='color:#0066cc;'>Click to open PDF</a>" if pdf_link else "No PDF attached"}
-            </td></tr>
-      </table>
-    </body></html>
+    <html>
+    <body style="font-family:Arial,sans-serif;padding:20px;">
+        <h2>📢 NSE Announcement Alert</h2>
+
+        <p><b>Company:</b> {symbol}</p>
+        <p><b>Subject:</b> {subject}</p>
+        <p><b>Time:</b> {an_date}</p>
+
+        <p>
+            <b>PDF:</b>
+            <a href="{pdf_link}">{pdf_link}</a>
+        </p>
+    </body>
+    </html>
     """
 
-    msg.attach(MIMEText(body_html, "html"))
-
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_SENDER, EMAIL_TO, msg.as_string())
-        print(f"[{now()}] EMAIL SENT — {symbol}: {subject}")
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": [EMAIL_TO],
+                "subject": f"NSE Alert: {symbol} - {subject}",
+                "html": body_html
+            },
+            timeout=20
+        )
+
+        print("RESEND STATUS:", response.status_code)
+        print("RESEND RESPONSE:", response.text)
+
     except Exception as e:
-        print(f"[{now()}] Email failed: {e}")
+        print(f"[{now()}] Resend failed: {e}")
 
 
 # ============================================================
@@ -2553,11 +2562,8 @@ def main():
         data = fetch_announcements()
 
         for item in data:
-            seq_id = (
-                item.get("an_seq_num")
-                or item.get("an_dt")
-                or item.get("attchmntFile")
-            )
+            seq_id = item.get("an_seq_num")
+
             if seq_id:
                 seen.add(seq_id)
 
