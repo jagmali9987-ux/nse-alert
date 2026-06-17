@@ -2603,7 +2603,8 @@ def main():
 
                 seen.add(seq_id)
 
-                if symbol in [s.upper() for s in WATCHLIST]:
+                WATCHLIST_SET = {s.upper() for s in WATCHLIST}
+                if symbol in WATCHLIST_SET:
                     has_pdf = bool(item.get("attchmntFile", ""))
 
                     print(
