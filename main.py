@@ -2533,7 +2533,14 @@ def main():
 
     refresh_nse_cookies()
     seen = load_seen()
-
+    send_email({
+    "symbol": "TEST",
+    "subject": "Railway Email Test",
+    "exchdisstime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+    "attchmntFile": ""})
+    print("EMAIL_SENDER:", EMAIL_SENDER)
+    print("EMAIL_TO:", EMAIL_TO)
+    print("PASSWORD SET:", bool(EMAIL_PASSWORD))
     # Seed seen on first run so we don't get flooded with old announcements
     if not seen:
         print(f"[{now()}] First run — seeding existing announcements (no emails)...")
@@ -2545,13 +2552,28 @@ def main():
 
     cookie_refresh_counter = 0
 
-    while True:
-        try:
-            data = fetch_announcements()
+while True:
+    try:
+        data = fetch_announcements()
 
-            for item in data:
-                seq_id = item.get("an_seq_num", "")
+        if data:
+            print("="*80)
+            print("FIRST ITEM:")
+            print(json.dumps(data[0], indent=2))
+            print("="*80)
+
+        for item in data:
+                seq_id = (
+                    item.get("an_seq_num")
+                    or item.get("an_dt")
+                    or item.get("attchmntFile")
+                )
+                
                 symbol = item.get("symbol", "").upper()
+                
+                print("SEQ_ID:", seq_id)
+                print("SYMBOL:", symbol)
+                
 
                 if seq_id in seen:
                     continue
