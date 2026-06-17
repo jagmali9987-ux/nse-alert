@@ -2536,19 +2536,20 @@ def send_email(announcement):
 
 def main():
     print("=" * 55)
-    print("  NSE Announcement Alert — Started")
-    print(f"  Watching: {', '.join(WATCHLIST)}")
-    print(f"  Polling every {POLL_INTERVAL} seconds")
+    print("NSE Announcement Alert — Started")
+    print(f"Watching {len(WATCHLIST)} symbols")
+    print(f"Polling every {POLL_INTERVAL} seconds")
     print("=" * 55)
 
     refresh_nse_cookies()
     seen = load_seen()
 
-    print("EMAIL_SENDER:", EMAIL_SENDER)
+    WATCHLIST_SET = {s.upper() for s in WATCHLIST}
+
     print("EMAIL_TO:", EMAIL_TO)
     print("RESEND KEY SET:", bool(RESEND_API_KEY))
 
-    # TEST EMAIL
+    # Test email on startup
     send_email({
         "symbol": "TEST",
         "subject": "Railway Email Test",
@@ -2556,9 +2557,10 @@ def main():
         "attchmntFile": ""
     })
 
-    # Seed existing announcements on first run
+    # First run seed
     if not seen:
         print(f"[{now()}] First run — seeding existing announcements (no emails)...")
+
         data = fetch_announcements()
 
         for item in data:
@@ -2568,6 +2570,7 @@ def main():
                 seen.add(seq_id)
 
         save_seen(seen)
+
         print(f"[{now()}] Seeded {len(seen)} existing announcements.")
 
     cookie_refresh_counter = 0
@@ -2582,7 +2585,7 @@ def main():
                 print(json.dumps(data[0], indent=2))
                 print("=" * 80)
 
-        for item in data:
+            for item in data:
 
                 seq_id = (
                     item.get("seq_id")
@@ -2603,13 +2606,14 @@ def main():
 
                 seen.add(seq_id)
 
-                WATCHLIST_SET = {s.upper() for s in WATCHLIST}
                 if symbol in WATCHLIST_SET:
+
                     has_pdf = bool(item.get("attchmntFile", ""))
 
                     print(
                         f"[{now()}] NEW: {symbol} — "
-                        f"{item.get('subject', '')} | PDF: {has_pdf}"
+                        f"{item.get('subject') or item.get('desc', '')} "
+                        f"| PDF: {has_pdf}"
                     )
 
                     send_email(item)
@@ -2632,7 +2636,7 @@ def main():
             break
 
         except Exception as e:
-            print(f"[{now()}] Unexpected error: {e}. Retrying in 10s.")
+            print(f"[{now()}] Unexpected error: {e}")
             time.sleep(10)
 
 if __name__ == "__main__":
