@@ -2546,7 +2546,7 @@ def main():
 
     print("EMAIL_SENDER:", EMAIL_SENDER)
     print("EMAIL_TO:", EMAIL_TO)
-    print("PASSWORD SET:", bool(EMAIL_PASSWORD))
+    print("RESEND KEY SET:", bool(RESEND_API_KEY))
 
     # TEST EMAIL
     send_email({
@@ -2562,7 +2562,7 @@ def main():
         data = fetch_announcements()
 
         for item in data:
-            seq_id = item.get("an_seq_num")
+            seq_id = item.get("seq_id")
 
             if seq_id:
                 seen.add(seq_id)
@@ -2585,7 +2585,7 @@ def main():
             for item in data:
 
                 seq_id = (
-                    item.get("an_seq_num")
+                    item.get("seq_id")
                     or item.get("an_dt")
                     or item.get("attchmntFile")
                 )
