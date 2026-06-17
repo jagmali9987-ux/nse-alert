@@ -20,9 +20,9 @@ WATCHLIST = [
     # Add more NSE symbols here
 ]
 
-EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "yourgmail@gmail.com")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "your_app_password")
-EMAIL_TO       = os.environ.get("EMAIL_TO", "youremail@gmail.com")
+EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "jagdishdude06@gmail.com")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "wpwd xufv yjgg mvag")
+EMAIL_TO       = os.environ.get("EMAIL_TO", "jagdishmali@rathi.com")
 
 POLL_INTERVAL  = 3   # seconds between each NSE check
 SEEN_FILE      = "seen_announcements.json"
