@@ -2512,7 +2512,8 @@ def send_email(announcement):
     msg.attach(MIMEText(body_html, "html"))
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as server:
+            server.starttls()
             server.login(EMAIL_SENDER, EMAIL_PASSWORD)
             server.sendmail(EMAIL_SENDER, EMAIL_TO, msg.as_string())
         print(f"[{now()}] EMAIL SENT — {symbol}: {subject}")
