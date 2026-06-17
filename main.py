@@ -2533,65 +2533,86 @@ def main():
 
     refresh_nse_cookies()
     seen = load_seen()
-    send_email({
-    "symbol": "TEST",
-    "subject": "Railway Email Test",
-    "exchdisstime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-    "attchmntFile": ""})
+
     print("EMAIL_SENDER:", EMAIL_SENDER)
     print("EMAIL_TO:", EMAIL_TO)
     print("PASSWORD SET:", bool(EMAIL_PASSWORD))
-    # Seed seen on first run so we don't get flooded with old announcements
+
+    # TEST EMAIL
+    send_email({
+        "symbol": "TEST",
+        "subject": "Railway Email Test",
+        "exchdisstime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+        "attchmntFile": ""
+    })
+
+    # Seed existing announcements on first run
     if not seen:
         print(f"[{now()}] First run — seeding existing announcements (no emails)...")
         data = fetch_announcements()
+
         for item in data:
-            seen.add(item.get("an_seq_num", ""))
+            seq_id = (
+                item.get("an_seq_num")
+                or item.get("an_dt")
+                or item.get("attchmntFile")
+            )
+            if seq_id:
+                seen.add(seq_id)
+
         save_seen(seen)
-        print(f"[{now()}] Seeded {len(seen)} existing announcements. Now watching for NEW ones.")
+        print(f"[{now()}] Seeded {len(seen)} existing announcements.")
 
     cookie_refresh_counter = 0
 
-while True:
-    try:
-        data = fetch_announcements()
+    while True:
+        try:
+            data = fetch_announcements()
 
-        if data:
-            print("="*80)
-            print("FIRST ITEM:")
-            print(json.dumps(data[0], indent=2))
-            print("="*80)
+            if data:
+                print("=" * 80)
+                print("FIRST ITEM:")
+                print(json.dumps(data[0], indent=2))
+                print("=" * 80)
 
-        for item in data:
+            for item in data:
+
                 seq_id = (
                     item.get("an_seq_num")
                     or item.get("an_dt")
                     or item.get("attchmntFile")
                 )
-                
+
                 symbol = item.get("symbol", "").upper()
-                
+
                 print("SEQ_ID:", seq_id)
                 print("SYMBOL:", symbol)
-                
+
+                if not seq_id:
+                    continue
 
                 if seq_id in seen:
                     continue
 
-                # New announcement found
                 seen.add(seq_id)
 
                 if symbol in [s.upper() for s in WATCHLIST]:
                     has_pdf = bool(item.get("attchmntFile", ""))
-                    print(f"[{now()}] NEW: {symbol} — {item.get('subject', '')} | PDF: {has_pdf}")
+
+                    print(
+                        f"[{now()}] NEW: {symbol} — "
+                        f"{item.get('subject', '')} | PDF: {has_pdf}"
+                    )
+
                     send_email(item)
+
                 else:
                     print(f"[{now()}] Skipped (not in watchlist): {symbol}")
 
             save_seen(seen)
 
-            # Refresh cookies every 10 minutes to stay alive
             cookie_refresh_counter += 1
+
             if cookie_refresh_counter >= (600 // POLL_INTERVAL):
                 refresh_nse_cookies()
                 cookie_refresh_counter = 0
@@ -2601,10 +2622,10 @@ while True:
         except KeyboardInterrupt:
             print("\nStopped by user.")
             break
+
         except Exception as e:
             print(f"[{now()}] Unexpected error: {e}. Retrying in 10s.")
             time.sleep(10)
-
 
 if __name__ == "__main__":
     main()
