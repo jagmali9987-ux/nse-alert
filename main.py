@@ -2515,7 +2515,7 @@ def send_email(announcement):
                 "Content-Type": "application/json"
             },
             json={
-                "from": "nse@flomone.resend.app",
+                "from": "onboarding@resend.dev",
                 "to": [EMAIL_TO],
                 "subject": f"NSE Alert: {symbol} - {subject}",
                 "html": body_html
