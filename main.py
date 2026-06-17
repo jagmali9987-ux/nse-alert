@@ -2582,7 +2582,7 @@ def main():
                 print(json.dumps(data[0], indent=2))
                 print("=" * 80)
 
-            for item in data:
+        for item in data:
 
                 seq_id = (
                     item.get("seq_id")
