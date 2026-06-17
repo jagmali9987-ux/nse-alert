@@ -20,9 +20,9 @@ WATCHLIST = [
     # Add more NSE symbols here
 ]
 
-EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "jagdishdude06@gmail.com")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "wpwd xufv yjgg mvag")
-EMAIL_TO       = os.environ.get("EMAIL_TO", "jagdishmali@rathi.com")
+EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
+EMAIL_TO       = os.environ.get("EMAIL_TO", "")
 
 POLL_INTERVAL  = 3   # seconds between each NSE check
 SEEN_FILE      = "seen_announcements.json"
@@ -85,6 +85,13 @@ def fetch_announcements():
     url = "https://www.nseindia.com/api/corporate-announcements?index=equities"
     try:
         resp = session.get(url, timeout=8)
+
+        # --- DEBUG LINE: shows exactly what NSE sent back ---
+        print(f"[{now()}] DEBUG status={resp.status_code} "
+              f"content-type={resp.headers.get('Content-Type')} "
+              f"body={resp.text[:300]!r}")
+        # ------------------------------------------------------
+
         if resp.status_code == 401 or resp.status_code == 403:
             print(f"[{now()}] Session expired — refreshing cookies.")
             refresh_nse_cookies()
