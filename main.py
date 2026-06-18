@@ -3,9 +3,11 @@ import smtplib
 import time
 import json
 import os
+import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+
 
 # ============================================================
 #  CONFIG — edit these or set as Railway environment variables
@@ -2390,6 +2392,8 @@ EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL   = "gemini-2.5-flash"
 
 POLL_INTERVAL  = 3   # seconds between each NSE check
 SEEN_FILE      = "seen_announcements.json"
@@ -2477,7 +2481,38 @@ def fetch_announcements():
 # ============================================================
 #  SEND EMAIL ALERT
 # ============================================================
+def summarize_pdf(pdf_url):
+    """Download the announcement PDF and get a free Gemini summary."""
+    if not pdf_url or not GEMINI_API_KEY:
+        return None
+    try:
+        pdf_resp = session.get(pdf_url, timeout=15)
+        pdf_resp.raise_for_status()
+        pdf_b64 = base64.b64encode(pdf_resp.content).decode("utf-8")
 
+        api_resp = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [
+                        {"inline_data": {"mime_type": "application/pdf", "data": pdf_b64}},
+                        {"text": (
+                            "Summarize this NSE corporate announcement in 3-4 bullet points. "
+                            "Keep numbers, dates, and decisions exact. No preamble."
+                        )},
+                    ]
+                }]
+            },
+            timeout=30,
+        )
+        api_resp.raise_for_status()
+        data = api_resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        return text.strip() or None
+    except Exception as e:
+        print(f"[{now()}] PDF summary failed: {e}")
+        return None
 def send_email(announcement):
     symbol = announcement.get("symbol", "N/A")
 
@@ -2489,6 +2524,11 @@ def send_email(announcement):
 
     an_date = announcement.get("exchdisstime", "")
     pdf_link = announcement.get("attchmntFile", "")
+    summary = summarize_pdf(pdf_link) if pdf_link else None
+    summary_html = (
+        f"<p><b>Summary:</b><br>{summary.replace(chr(10), '<br>')}</p>"
+        if summary else ""
+    )
 
     body_html = f"""
     <html>
@@ -2498,7 +2538,7 @@ def send_email(announcement):
         <p><b>Company:</b> {symbol}</p>
         <p><b>Subject:</b> {subject}</p>
         <p><b>Time:</b> {an_date}</p>
-
+         {summary_html}
         <p>
             <b>PDF:</b>
             <a href="{pdf_link}">{pdf_link}</a>
