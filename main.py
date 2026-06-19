@@ -538,7 +538,7 @@ def main():
     log(f"Loaded {len(seen)} previously seen announcements.")
     log(f"Watching: {sorted(WATCHLIST_SET)}")
 
-    poll_count = 0
+poll_count = 0
 
 while True:
     try:
