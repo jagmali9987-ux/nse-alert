@@ -650,13 +650,14 @@ def main():
 
             new_count = 0
             for item in data:
-                seq = item.get("an_seq_num")
-                if seq is None:
-                    continue
+                seq = (
+                    item.get("an_seq_num")
+                    or item.get("symbol", "") + "|" + item.get("attchmntFile", "")
+                )
+                
                 if seq in seen:
                     continue
-
-                # Mark seen immediately so a crash mid-processing doesn't re-send
+                
                 seen.add(seq)
                 new_count += 1
 
