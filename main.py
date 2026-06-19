@@ -576,7 +576,7 @@ while True:
 
                 send_email(item, summary)
 
-        seen = save_seen(seen)
+    seen = save_seen(seen)
 
     except Exception:
         log("Unhandled error in main loop:")
