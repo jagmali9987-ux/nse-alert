@@ -7,6 +7,7 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 from pypdf import PdfReader
+from groq import Groq
 
 # ============================================================
 #  CONFIG — set these as Railway environment variables
@@ -411,52 +412,43 @@ def download_pdf_text(pdf_url, max_chars=15000):
 #  GEMINI AI SUMMARY  (retries once on 429)
 # ============================================================
 
-def summarize_with_gemini(pdf_text):
+
+ef summarize_with_groq(pdf_text):
     if not pdf_text:
         return "(Could not extract text from PDF to summarize.)"
 
-    api_key = os.environ.get("GEMINI_API_KEY", "")   # fresh read every call
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        return "(GEMINI_API_KEY not set — skipping summary.)"
+        return "(GROQ_API_KEY not set — skipping summary.)"
+
+    client = Groq(api_key=api_key)
 
     prompt = (
         "Summarize this NSE corporate announcement PDF in exactly 2-3 bullet points. "
         "Each bullet must be ONE short sentence, under 15 words. "
-        "Keep every number, date, and amount exactly as written in the source — do not round or drop any. "
-        "No preamble, no headings, no extra commentary — just bullets starting with '-'. "
-        "Focus on the single most material fact per bullet (decision, amount, date, outcome).\n\n"
+        "Keep every number, date, and amount exactly as written. "
+        "No preamble, no headings — only bullets starting with '-'. "
+        "Focus on most material facts.\n\n"
         f"{pdf_text}"
     )
 
-    url  = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{GEMINI_MODEL}:generateContent?key={api_key}"
-    )
-    body = {"contents": [{"parts": [{"text": prompt}]}]}
-
     for attempt in range(2):
         try:
-            resp = requests.post(url, json=body, timeout=30)
+            chat = client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
 
-            if resp.status_code == 429:
-                if attempt == 0:
-                    print(f"[{now()}] Gemini 429 — waiting 30s then retrying...")
-                    time.sleep(30)
-                    continue
-                else:
-                    print(f"[{now()}] Gemini 429 again — sending email without summary.")
-                    return "(AI summary unavailable — rate limit reached.)"
-
-            resp.raise_for_status()
-            data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return chat.choices[0].message.content.strip()
 
         except Exception as e:
-            print(f"[{now()}] Gemini error (attempt {attempt + 1}): {e}")
+            print(f"Groq error (attempt {attempt+1}): {e}")
             if attempt == 0:
                 time.sleep(5)
 
-    return "(Summary unavailable — Gemini error after retry.)"
+    return "(Summary unavailable — Groq error after retry.)"
+
 
 
 # ============================================================
