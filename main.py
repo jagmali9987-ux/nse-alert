@@ -10,310 +10,43 @@ from pypdf import PdfReader
 from groq import Groq
 
 # ============================================================
-#  CONFIG — set these as Railway environment variables
+# CONFIG
 # ============================================================
 
-WATCHLIST = [
-"20MICRONS","21STCENMGM","360ONE","3BBLACKBIO","3IINFOLTD","3MINDIA","3PLAND","5PAISA","63MOONS",
-"A2ZINFRA","AAATECH","AADHARHFC","AAKASH","AAREYDRUGS","AARNAV","AARON","AARTECH","AARTIDRUGS",
-"AARTIIND","AARTIPHARM","AARTISURF","AARVI","AAVAS","ABANSENT","ABB","ABBOTINDIA","ABCAPITAL",
-"ABCOTS","ABDL","ABFRL","ABINFRA","ABLBL","ABMINTLLTD","ABMKNO","ABREL","ABSLAMC","ACC",
-"ACCELYA","ACCURACY","ACE","ACEINTEG","ACI","ACL","ACMESOLAR","ACSTECH","ACUTAAS","ADANIENSOL",
-"ADANIENT","ADANIGREEN","ADANIPORTS","ADANIPOWER","ADFFOODS","ADL","ADOR","ADROITINFO","ADSL",
-"ADVAIT","ADVANCE","ADVANIHOTR","ADVENTHTL","ADVENZYMES","AEGISLOG","AEGISVOPAK","AEPL","AEQUS",
-"AEROENTER","AEROFLEX","AERONEU","AETHER","AFCONS","AFFLE","AFFORDABLE","AFIL","AFSL","AGARIND",
-"AGARWALEYE","AGI","AGIIL","AGRITECH","AGROPHOS","AHCL","AHLADA","AHLEAST","AHLUCONT","AHLWEST",
-"AIAENG","AIIL","AIRAN","AIROLAM","AJANTPHARM","AJAXENGG","AJMERA","AJOONI","AKASH","AKCAPIT",
-"AKG","AKI","AKSHAR","AKSHARCHEM","AKSHOPTFBR","AKUMS","ALANKIT","ALBERTDAVD","ALEMBICLTD",
-"ALGOQUANT","ALICON","ALIVUS","ALKALI","ALKEM","ALKYLAMINE","ALLCARGO","ALLDIGI","ALLTIME",
-"ALMONDZ","ALOKINDS","ALPA","ALPHAGEO","AMAGI","AMANTA","AMBALALSA","AMBER","AMBICAAGAR",
-"AMBIKCO","AMBUJACEM","AMDIND","AMIRCHAND","AMJLAND","AMNPLST","AMRUTANJAN","ANANDRATHI",
-"ANANTRAJ","ANDHRAPAP","ANDHRSUGAR","ANGELONE","ANIKINDS","ANKITMETAL","ANMOL","ANSALAPI",
-"ANTELOPUS","ANTGRAPHIC","ANTHEM","ANUHPHR","ANUP","ANURAS","APARINDS","APCL","APCOTEXIND",
-"APEX","APLAPOLLO","APLLTD","APOLLO","APOLLOHOSP","APOLLOPIPE","APOLLOTYRE","APOLSINHOT",
-"APTECHT","APTUS","AQYLON","ARCHIDPLY","ARCHIES","ARE&M","ARENTERP","ARFIN","ARIES","ARIHANT",
-"ARIHANTCAP","ARIHANTSUP","ARIS","ARKADE","ARMANFIN","AROGRANITE","ARROWGREEN","ARSHIYA",
-"ARSSBL","ARTEMISMED","ARTNIRMAN","ARVEE","ARVIND","ARVINDFASN","ARVSMART","ASAHIINDIA",
-"ASAHISONG","ASAL","ASALCBR","ASHAPURMIN","ASHIANA","ASHIKA","ASHIMASYN","ASHOKA","ASHOKAMET",
-"ASHOKLEY","ASIANENE","ASIANHOTNR","ASIANPAINT","ASIANTILES","ASKAUTOLTD","ASMS","ASPINWALL",
-"ASTAR","ASTEC","ASTERDM","ASTRAL","ASTRAMICRO","ASTRAZEN","ASTRON","ATALREAL","ATAM","ATGL",
-"ATHERENERG","ATL","ATLANTAA","ATLANTAELE","ATLASCYCLE","ATUL","ATULAUTO","AUBANK","AURIGROW",
-"AURIONPRO","AUROPHARMA","AURUM","AUSOMENT","AUTOAXLES","AUTOIND","AVADHSUGAR","AVALON",
-"AVANTEL","AVANTIFEED","AVG","AVL","AVONMORE","AVROIND","AVTNPL","AWFIS","AWHCL","AWL",
-"AXISBANK","AXISCADES","AXITA","AYE","AYMSYNTEX","AZAD","BAFNAPH","BAGFILMS","BAIDFIN",
-"BAJAJ-AUTO","BAJAJCON","BAJAJELEC","BAJAJFINSV","BAJAJHCARE","BAJAJHFL","BAJAJHIND",
-"BAJAJHLDNG","BAJAJINDEF","BAJAJST","BAJEL","BAJFINANCE","BALAJEE","BALAJITELE","BALAMINES",
-"BALAXI","BALKRISHNA","BALKRISIND","BALMLAWRIE","BALPHARMA","BALRAMCHIN","BALUFORGE",
-"BANARBEADS","BANARISUG","BANCOINDIA","BANDHANBNK","BANG","BANKA","BANKBARODA","BANKINDIA",
-"BANSALWIRE","BANSWRAS","BASF","BASML","BATAINDIA","BATLIBOI","BAYERCROP","BBL","BBOX","BBTC",
-"BBTCL","BCG","BCLIND","BCONCEPTS","BCPL","BDL","BEARDSELL","BECTORFOOD","BEDMUTHA","BEEKAY",
-"BEL","BELLACASA","BELRISE","BEML","BENGALASM","BEPL","BERGEPAINT","BESTAGRO","BETA","BFINVEST",
-"BFUTILITIE","BGRENERGY","BHAGCHEM","BHAGERIA","BHAGYANGR","BHANDARI","BHARATCOAL","BHARATFORG",
-"BHARATGEAR","BHARATRAS","BHARATSE","BHARATWIRE","BHARTIARTL","BHARTIHEXA","BHEL","BI","BIGBLOC",
-"BIKAJI","BIL","BILVYAPAR","BIMETAL","BIOCON","BIOFILCHEM","BIRLACABLE","BIRLACORPN",
-"BIRLAMONEY","BIRLANU","BIRLAPREC","BLACKBUCK","BLACKROSE","BLAL","BLBLIMITED","BLIL","BLISSGVS",
-"BLKASHYAP","BLS","BLSE","BLUECOAST","BLUEDART","BLUEJET","BLUESTARCO","BLUESTONE","BLUSPRING",
-"BMWVENTLTD","BNAGROCHEM","BNALTD","BODALCHEM","BOHRAIND","BOMDYEING","BONLON","BORANA",
-"BOROLTD","BORORENEW","BOROSCI","BOSCH-HCIL","BOSCHLTD","BPCL","BPL","BRIGADE","BRIGHOTEL",
-"BRITANNIA","BRNL","BROOKS","BSE","BSHSL","BSL","BSOFT","BTML","BTTL","BUILDPRO","BUTTERFLY",
-"BVCL","BYKE","CALSOFT","CAMLINFINE","CAMPUS","CAMS","CANBK","CANFINHOME","CANHLIFE","CANTABIL",
-"CAPACITE","CAPILLARY","CAPITALSFB","CAPLIPOINT","CAPTRUST","CARBORUNIV","CARERATING","CARRARO",
-"CARTRADE","CARYSIL","CASTROLIND","CCAVENUE","CCCL","CCHHL","CCL","CDSL","CEATLTD","CEIGALL",
-"CEINSYS","CELEBRITY","CELLO","CEMPRO","CENTENKA","CENTEXT","CENTRALBK","CENTRUM","CENTUM",
-"CENTURYPLY","CERA","CEREBRAINT","CESC","CEWATER","CGCL","CGPOWER","CHALET","CHAMBLFERT",
-"CHEMBOND","CHEMBONDCH","CHEMCON","CHEMFAB","CHEMPLASTS","CHENNPETRO","CHEVIOT","CHOICEIN",
-"CHOLAFIN","CHOLAHLDNG","CIEINDIA","CIFL","CINELINE","CINEVISTA","CIPLA","CLEAN","CLEANMAX",
-"CLEDUCATE","CLSEL","CMPDI","CMRGREEN","CMSINFO","CNL","COALINDIA","COASTCORP","COCHINSHIP",
-"COCKERILL","COFFEEDAY","COFORGE","COHANCE","COLPAL","COMFINTE","COMPINFO","COMPUSOFT","COMSYN",
-"CONCOR","CONCORDBIO","CONFIPET","CONSOFINVT","CONTROLPR","CORALFINAC","CORDSCABLE","COROMANDEL",
-"CORONA","COSMOFIRST","COUNCODOS","CPCAP","CPEDU","CPPLUS","CRAFTSMAN","CRAMC","CREATIVEYE",
-"CREDITACC","CREST","CRISIL","CRIZAC","CROMPTON","CROWN","CSBBANK","CSLFINANCE","CTE","CUB",
-"CUBEXTUB","CUMMINSIND","CUPID","CURAA","CYBERMEDIA","CYBERTECH","CYIENT","CYIENTDLM","DABUR",
-"DAICHI","DALBHARAT","DALMIASUG","DAMCAPITAL","DAMODARIND","DANGEE","DATAMATICS","DATAPATTNS",
-"DAVANGERE","DBCORP","DBEIL","DBL","DBOL","DBREALTY","DBSTOCKBRO","DCAL","DCBBANK","DCI","DCM",
-"DCMFINSERV","DCMNVL","DCMSHRIRAM","DCMSIL","DCMSRIND","DCW","DCXINDIA","DDEVPLSTIK","DECCANCE",
-"DECNGOLD","DEEDEV","DEEPAKFERT","DEEPAKNTR","DEEPINDS","DELHIVERY","DELPHIFX","DELTACORP",
-"DELTAMAGNT","DEN","DENORA","DENTA","DEVIT","DEVX","DEVYANI","DGCONTENT","DHAMPURSUG","DHANBANK",
-"DHANUKA","DHARAN","DHARMAJ","DHRUV","DHUNINV","DIACABS","DIAMINESQ","DIAMONDYD","DICIND",
-"DIFFNKG","DIGIDRIVE","DIGISPICE","DIGITIDE","DIGJAMLMTD","DISAQ","DISHTV","DIVGIITTS",
-"DIVISLAB","DIXON","DJML","DLF","DLINKINDIA","DMART","DMCC","DNAMEDIA","DODLA","DOLATALGO",
-"DOLLAR","DOLPHIN","DOMS","DONEAR","DPABHUSHAN","DPSCLTD","DPWIRES","DRAGARWQ","DRCSYSTEMS",
-"DREAMFOLKS","DREDGECORP","DRREDDY","DSFCL","DSSL","DTIL","DUCON","DVL","DWARKESH","DYCL",
-"DYNAMATECH","DYNPRO","E2E","EASEMYTRIP","EASTSILK","EBGNG","ECLERX","ECOSMOBLTY","EDELWEISS",
-"EFCIL","EICHERMOT","EIDPARRY","EIEL","EIFFL","EIHAHOTELS","EIHOTEL","EIMCOELECO","EKC",
-"ELANTAS","ELCIDIN","ELDEHSG","ELECON","ELECTCAST","ELECTHERM","ELGIEQUIP","ELGIRUBCO","ELIN",
-"ELITECON","ELLEN","ELPROINTL","EMAMILTD","EMAMIPAP","EMAMIREAL","EMBDL","EMCURE","EMIL",
-"EMKAY","EMMBI","EMMVEE","EMPOWER","EMSLIMITED","EMUDHRA","ENDURANCE","ENERGYDEV","ENGINERSIN",
-"ENIL","ENRIN","ENTERO","EPACK","EPACKPEB","EPIGRAL","EPL","EQUIPPP","EQUITASBNK","ERIS",
-"ESABINDIA","ESAFSFB","ESCORTS","ESSARSHPNG","ESSENTIA","ESTER","ETERNAL","ETHOSLTD","EUREKAFORB",
-"EUROBOND","EUROPRATIK","EUROTEXIND","EVEREADY","EVERESTIND","EXCELINDUS","EXCELSOFT","EXICOM",
-"EXIDEIND","EXPLEOSOL","EXXARO","FABTECH","FACT","FAIRCHEMOR","FAZE3Q","FCL","FCSSOFT","FDC",
-"FEDDERSHOL","FEDERALBNK","FEDFINA","FEL","FELDVR","FERMENTA","FIBERWEB","FIEMIND","FILATEX",
-"FILATFASH","FINCABLES","FINEORG","FINKURVE","FINOPB","FINPIPE","FIRSTCRY","FISCHER","FIVESTAR",
-"FLAIR","FLEXITUFF","FLFL","FLUOROCHEM","FMGOETZE","FMNL","FOCUS","FOODSIN","FORCEMOT","FORTIS",
-"FOSECOIND","FRACTAL","FRONTSP","FSL","FUSION","GABRIEL","GAEL","GAIL","GALAPREC","GALAXYSURF",
-"GALLANTT","GANDHAR","GANDHITUBE","GANECOS","GANESHBE","GANESHCP","GANESHHOU","GANGAFORGE",
-"GANGESSECU","GARFIBRES","GARUDA","GATECH","GATECHDVR","GATEWAY","GAUDIUMIVF","GAYAHWS",
-"GAYAPROJ","GCSL","GEECEE","GEEKAYWIRE","GEMAROMA","GENCON","GENESYS","GENUSPAPER","GENUSPOWER",
-"GEOJITFSL","GESHIP","GFLLIMITED","GHCL","GHCLTEXTIL","GICHSGFIN","GICL","GICRE","GILLANDERS",
-"GILLETTE","GINNIFILA","GIPCL","GKENERGY","GKSL","GKWLIMITED","GLAND","GLAXO","GLENMARK","GLFL",
-"GLOBAL","GLOBALE","GLOBALVECT","GLOBE","GLOBECIVIL","GLOBUSSPR","GLOSTERLTD","GLOTTIS","GMBREW",
-"GMDCLTD","GMMPFAUDLR","GMRAIRPORT","GMRP&UI","GNA","GNFC","GNRL","GOACARBON","GOCLCORP",
-"GOCOLORS","GODAVARIB","GODFRYPHLP","GODIGIT","GODREJAGRO","GODREJCP","GODREJIND","GODREJPROP",
-"GOKEX","GOKUL","GOKULAGRO","GOLDENTOBC","GOLDIAM","GOLDTECH","GOODLUCK","GOODYEAR","GOPAL",
-"GOYALALUM","GPIL","GPPL","GPTHEALTH","GPTINFRA","GRADIENTE","GRANDOAK","GRANULES","GRAPHITE",
-"GRASIM","GRAUWEIL","GRAVISSHO","GRAVITA","GREAVESCOT","GREENLAM","GREENPANEL","GREENPLY",
-"GREENPOWER","GRINDWELL","GRINFRA","GRMOVER","GROBTEA","GROWW","GRPLTD","GRSE","GRWRHITECH",
-"GSFC","GSLSU","GSPCROP","GSS","GTECJAINX","GTL","GTLINFRA","GTPL","GUFICBIO","GUJALKALI",
-"GUJAPOLLO","GUJGASLTD","GUJRAFFIA","GUJTHEM","GULFOILLUB","GULFPETRO","GULPOLY","GVKPIL",
-"GVPIL","GVPTECH","GVT&D","HAL","HALDER","HALDYNGL","HALEOSLABS","HAPPSTMNDS","HAPPYFORGE",
-"HARDWYN","HARIOMPIPE","HARRMALAYA","HARSHA","HATHWAY","HATSUN","HAVELLS","HAVISHA","HAWKINCOOK",
-"HBESD","HBLENGINE","HBSL","HCC","HCG","HCL-INSYS","HCLTECH","HDBFS","HDFCAMC","HDFCBANK",
-"HDFCLIFE","HDIL","HEADSUP","HEALTHX","HECPROJECT","HEG","HEIDELBERG","HEMIPROP","HERANBA",
-"HERITGFOOD","HEROMOTOCO","HESTERBIO","HEXAGON","HEXATRADEX","HEXT","HFCL","HGINFRA","HGM",
-"HGS","HIKAL","HILINFRA","HILTON","HIMATSEIDE","HINDALCO","HINDCOMPOS","HINDCON","HINDCOPPER",
-"HINDOILEXP","HINDPETRO","HINDUNILVR","HINDWAREAP","HINDZINC","HIRECT","HISARMETAL","HITECH",
-"HITECHCORP","HITECHGEAR","HLEGLAS","HLVLTD","HMAAGRO","HMT","HMVL","HNDFDS","HOMEFIRST",
-"HONASA","HONAUT","HONDAPOWER","HPAL","HPIL","HPL","HSCL","HTMEDIA","HUBTOWN","HUDCO",
-"HUHTAMAKI","HYBRIDFIN","HYUNDAI","IBULLSLTD","ICDSLTD","ICEMAKE","ICICIAMC","ICICIBANK",
-"ICICIGI","ICICIPRULI","ICIL","ICRA","IDBI","IDEA","IDEAFORGE","IDFCFIRSTB","IEX","IFBAGRO",
-"IFBIND","IFCI","IFGLEXPOR","IGARASHI","IGCL","IGIL","IGL","IGPL","IIFL","IIFLCAPS","IITL",
-"IKIO","IKS","IL&FSENGG","IL&FSTRANS","IMAGICAA","IMFA","IMPAL","INA","INCREDIBLE","INDBANK",
-"INDGN","INDHOTEL","INDIACEM","INDIAGLYCO","INDIAMART","INDIANB","INDIANCARD","INDIANHUME",
-"INDIASHLTR","INDIGO","INDIGOPNTS","INDIQUBE","INDNIPPON","INDOAMIN","INDOBORAX","INDOCO",
-"INDOFARM","INDORAMA","INDOSTAR","INDOTECH","INDOTHAI","INDOUS","INDOWIND","INDPRUD","INDRAMEDCO",
-"INDSWFTLAB","INDTERRAIN","INDUSINDBK","INDUSTOWER","INFOBEAN","INFOMEDIA","INFY","INGERRAND",
-"INNOVACAP","INNOVANA","INNOVISION","INOXGREEN","INOXINDIA","INOXWIND","INSECTICID","INSPIRISYS",
-"INTELLECT","INTENTECH","INTERARCH","INTLCONV","INVENTURE","INVPRECQ","IOB","IOC","IOLCP",
-"IONEXCHANG","IPCALAB","IPL","IRB","IRCON","IRCTC","IREDA","IRFC","IRIS","IRISDOREME",
-"IRMENERGY","ISFT","ISGEC","ISHANCH","ITC","ITCHOTELS","ITDC","ITI","IVALUE","IVC","IVP","IWP",
-"IXIGO","IZMO","J&KBANK","JAGRAN","JAGSNPHARM","JAIBALAJI","JAICORPLTD","JAINREC","JAIPURKURT",
-"JAMNAAUTO","JARO","JASH","JAYAGROGN","JAYBARMARU","JAYKAY","JAYNECOIND","JAYSREETEA",
-"JBCHEPHARM","JBMA","JETFREIGHT","JGCHEM","JHS","JINDALPHOT","JINDALPOLY","JINDALSAW",
-"JINDALSTEL","JINDRILL","JINDWORLD","JIOFIN","JISLDVREQS","JISLJALEQS","JITFINFRA","JKCEMENT",
-"JKIL","JKIPL","JKLAKSHMI","JKPAPER","JKTYRE","JLHL","JMA","JMFINANCIL","JNKINDIA","JOCIL",
-"JPOLYINVST","JPPOWER","JSFB","JSL","JSLL","JSWCEMENT","JSWDULUX","JSWENERGY","JSWHL","JSWINFRA",
-"JSWSTEEL","JTEKTINDIA","JTLIND","JUBLCPL","JUBLFOOD","JUBLINGREA","JUBLPHARMA","JUNIPER",
-"JUSTDIAL","JWL","JYOTHYLAB","JYOTICNC","JYOTISTRUC","KABRAEXTRU","KAJARIACER","KAKATCEM",
-"KALAMANDIR","KALPATARU","KALYANI","KALYANIFRG","KALYANKJIL","KAMAHOLD","KAMATHOTEL","KAMDHENU",
-"KAMOPAINTS","KANANIIND","KANCHI","KANORICHEM","KANPRPLA","KANSAINER","KAPSTON","KARMAENG",
-"KARURVYSYA","KAUSHALYA","KAVDEFENCE","KAYA","KAYNES","KCP","KCPSUGIND","KDDL","KEC","KECL",
-"KEEPLEARN","KEI","KELLTONTEC","KENNAMET","KERNEX","KESORAMIND","KEYFINSERV","KFINTECH","KHADIM",
-"KHAICHEM","KHAITANLTD","KHANDSE","KICL","KILITCH","KIMS","KINGFA","KIOCL","KIRANVYPAR",
-"KIRIINDUS","KIRLFER","KIRLOSBROS","KIRLOSENG","KIRLOSIND","KIRLPNU","KISSHT","KITEX","KKCL",
-"KLBRENG-B","KMEW","KMSUGAR","KNAGRI","KNRCON","KOHINOOR","KOKUYOCMLN","KOLTEPATIL","KOPRAN",
-"KOTAKBANK","KOTARISUG","KOTHARIPET","KOTHARIPRO","KOTIC","KOTYARK","KOVAI","KPEL","KPIGREEN",
-"KPIL","KPITTECH","KPL","KPRMILL","KRBL","KREBSBIO","KRIDHANINF","KRISHANA","KRISHIVAL",
-"KRISHNADEF","KRITI","KRITIKA","KRITINUT","KRN","KRONOX","KROSS","KRSNAA","KRYSTAL","KSB",
-"KSCL","KSHINTL","KSHITIJPOL","KSL","KSOLVES","KSR","KTKBANK","KUANTUM","KWIL","LAGNAM",
-"LAHOTIOV","LAKPRE","LAL","LALPATHLAB","LAMBODHARA","LANCORHOL","LANDMARK","LANDSMILL","LAOPALA",
-"LASA","LATENTVIEW","LATTEYS","LAURUSLABS","LAXMICOT","LAXMIDENTL","LAXMIINDIA","LCCINFOTEC",
-"LEMERITE","LEMONTREE","LENSKART","LEXUS","LFIC","LGBBROSLTD","LGEINDIA","LGHL","LIBAS",
-"LIBERTSHOE","LICHSGFIN","LICI","LIKHITHA","LINC","LINCOLN","LINDEINDIA","LLOYDSENGG","LLOYDSENT",
-"LLOYDSME","LMW","LODHA","LOKESHMACH","LORDSCHLO","LOTUSDEV","LOTUSEYE","LOVABLE","LOYALTEX",
-"LPDC","LT","LTF","LTFOODS","LTM","LTTS","LUMAXIND","LUMAXTECH","LUPIN","LUXIND","LXCHEM",
-"LYKALABS","LYPSAGEMS","M&M","M&MFIN","MAANALU","MACPOWER","MADHAV","MADHAVIPL","MADHUCON",
-"MADRASFERT","MAFATIND","MAGADSUGAR","MAGNUM","MAHABANK","MAHAPEXLTD","MAHASTEEL","MAHEPC",
-"MAHESHWARI","MAHLIFE","MAHLOG","MAHSCOOTER","MAHSEAMLES","MAITHANALL","MAJESAUT","MALLCOM",
-"MALUPAPER","MAMATA","MANAKALUCO","MANAKCOAT","MANAKSIA","MANAKSTEEL","MANALIPETC","MANAPPURAM",
-"MANBA","MANCREDIT","MANGALAM","MANGLMCEM","MANINDS","MANINFRA","MANKIND","MANOMAY","MANORAMA",
-"MANORG","MANUGRAPH","MANYAVAR","MAPMYINDIA","MARALOVER","MARATHON","MARICO","MARINE",
-"MARKOLINES","MARKSANS","MARSONS","MARUTI","MASFIN","MASKINVEST","MASTEK","MASTERTR","MATRIMONY",
-"MAWANASUG","MAXESTATES","MAXHEALTH","MAXIND","MAYURUNIQ","MAZDA","MAZDOCK","MBAPL","MBEL",
-"MBLINFRA","MCCHRLS-B","MCL","MCLEODRUSS","MCLOUD","MCX","MEDANTA","MEDIASSIST","MEDICAMEQ",
-"MEDICO","MEDPLUS","MEESHO","MEGASTAR","MEIL","MENNPIS","MENONBE","MEP","MERCANTILE","MERCURYEV",
-"METROBRAND","METROGLOBL","METROPOLIS","MFML","MFSL","MGEL","MGL","MHLXMIRU","MHRIL","MICEL",
-"MIDHANI","MIDWESTLTD","MINDACORP","MINDTECK","MIRCELECTR","MIRZAINT","MITCON","MITTAL","MKPL",
-"MMFL","MMP","MMTC","MMWL","MOBIKWIK","MODINATUR","MODIRUBBER","MODIS","MODISONLTD","MODTHREAD",
-"MOHITIND","MOIL","MOKSH","MOL","MOLDTECH","MOLDTKPAC","MONARCH","MONEYBOXX","MONTECARLO",
-"MORARJEE","MOREPENLAB","MOSCHIP","MOTHERSON","MOTILALOFS","MOTISONS","MOTOGENFIN","MPHASIS",
-"MPSLTD","MRF","MRPL","MSPL","MSTCLTD","MSUMI","MTARTECH","MTEDUCARE","MTNL","MUFIN","MUFTI",
-"MUKANDLTD","MUKKA","MUKTAARTS","MUNJALAU","MUNJALSHOW","MURUDCERA","MUTHOOTCAP","MUTHOOTFIN",
-"MUTHOOTMF","MVGJL","MWL","NACLIND","NAGREEKCAP","NAGREEKEXP","NAHARCAP","NAHARINDUS","NAHARPOLY",
-"NAHARSPING","NAM-INDIA","NARMADA","NATCAPSUQ","NATCOPHARM","NATHBIOGEN","NATIONALUM","NATIONSTD",
-"NAUKRI","NAVA","NAVINFLUOR","NAVKARCORP","NAVKARURB","NAVNETEDUL","NAZARA","NBCC","NBIFIN","NCC",
-"NCLIND","NDGL","NDL","NDLVENTURE","NDRAUTO","NDTV","NEAGI","NECCLTD","NECLIFE","NELCAST","NELCO",
-"NEOGEN","NEPHROPLUS","NESCO","NESTLEIND","NETWEB","NETWORK18","NEULANDLAB","NEWGEN","NEXTMEDIA",
-"NFL","NGIL","NGLFINE","NH","NHPC","NIACL","NIBE","NIBL","NIITLTD","NIITMTS","NILAINFRA",
-"NILASPACES","NILE","NILKAMAL","NIMBSPROJ","NINSYS","NIPPOBATRY","NIRAJ","NIRAJISPAT","NIRLON",
-"NITCO","NITINSPIN","NITIRAJ","NITTAGELA","NIVABUPA","NKIND","NLCINDIA","NMDC","NOCIL","NOIDATOLL",
-"NORBTEAEXP","NORTHARC","NOVAAGRI","NOVARTIND","NPST","NRAIL","NRBBEARING","NRL","NSIL","NSLNISP",
-"NTPC","NTPCGREEN","NUCLEUS","NURECA","NUVAMA","NUVOCO","NYKAA","OAL","OBCL","OBEROIRLTY",
-"OCCLLTD","ODIGMA","OFSS","OIL","OILCOUNTUB","OLAELEC","OLECTRA","OMAXAUTO","OMAXE","OMFREIGHT",
-"OMINFRAL","OMNI","OMPOWER","ONELIFECAP","ONEPOINT","ONESOURCE","ONGC","ONMOBILE","ONWARDTEC",
-"OPTIEMUS","ORBTEXP","ORCHASP","ORCHPHARMA","ORICONENT","ORIENTALTL","ORIENTBELL","ORIENTCEM",
-"ORIENTCER","ORIENTELEC","ORIENTHOT","ORIENTLTD","ORIENTPPR","ORIENTTECH","ORISSAMINE","ORKLAINDIA",
-"ORTEL","ORTINGLOBE","OSIAHYPER","OSWALAGRO","OSWALGREEN","OSWALPUMPS","OSWALSEEDS","PACEDIGITK",
-"PAGEIND","PAISALO","PAKKA","PALASHSECU","PALREDTEC","PANACEABIO","PANACHE","PANAMAPET","PANSARI",
-"PAR","PARACABLES","PARADEEP","PARAGMILK","PARAS","PARASPETRO","PARKHOSPS","PARKHOTELS","PARSVNATH",
-"PASHUPATI","PASUPTAC","PATANJALI","PATELENG","PATELRMART","PATINTLOG","PAUSHAKLTD","PAVNAIND",
-"PAYTM","PCBL","PCJEWELLER","PDMJEPAPER","PDSL","PEARLPOLY","PENIND","PENINLAND","PERSISTENT",
-"PETRONET","PFC","PFIZER","PFOCUS","PFS","PGEL","PGHH","PGHL","PGIL","PHOENIXLTD","PICCADIL",
-"PIDILITIND","PIGL","PIIND","PILANIINVS","PILITA","PINELABS","PIONEEREMB","PIONRINV","PIRAMALFIN",
-"PITTIENG","PIXTRANS","PKTEA","PLASTIBLEN","PLATIND","PLAZACABLE","PML","PNB","PNBGILTS",
-"PNBHOUSING","PNC","PNCINFRA","PNGJL","PNGSREVA","POCL","PODDARMENT","POKARNA","POLICYBZR",
-"POLYCAB","POLYMED","POLYPLEX","PONNIERODE","POONAWALLA","POWERGRID","POWERICA","POWERINDIA",
-"POWERMECH","PPAP","PPL","PPLPHARMA","PRABHA","PRADPME","PRAENG","PRAJIND","PRAKASH","PRAKASHSTL",
-"PRAVEG","PRAXIS","PRECAM","PRECOT","PRECWIRE","PREMCO","PREMEXPLN","PREMIER","PREMIERENE",
-"PREMIERPOL","PRESTIGE","PRICOLLTD","PRIMESECU","PRIMO","PRINCEPIPE","PRITI","PRITIKAUTO",
-"PRIVISCL","PROSTARM","PROTEAN","PROZONER","PRSMJOHNSN","PRUDENT","PRUDMOULI","PSB","PSPPROJECT",
-"PTC","PTCIL","PTL","PUNJABCHEM","PURVA","PVP","PVRINOX","PVSL","PWL","PYRAMID","QMSMEDI",
-"QPOWER","QUADFUTURE","QUESS","QUICKHEAL","QUINT","RACE","RACLGEAR","RADAAN","RADHIKAJWE",
-"RADIANTCMS","RADICO","RADIOCITY","RAILTEL","RAIN","RAINBOW","RAJESHEXPO","RAJMET","RAJOOENG",
-"RAJPALAYAM","RAJRATAN","RAJRILTD","RAJSREESUG","RAJTV","RALLIS","RAMANEWS","RAMAPHO","RAMASTEEL",
-"RAMCOCEM","RAMCOIND","RAMCOSYS","RAMKY","RAMRAT","RANASUG","RANEHOLDIN","RATEGAIN","RATNAMANI",
-"RATNAVEER","RAYMOND","RAYMONDLSL","RAYMONDREL","RBA","RBLBANK","RBZJEWEL","RCF","RCOM","RECLTD",
-"REDINGTON","REDTAPE","REFEX","REGAAL","REGENCERAM","RELAXO","RELCHEMQ","RELIABLE","RELIANCE",
-"RELIGARE","RELTD","RELTD-RE","REMSONSIND","RENUKA","REPCOHOME","REPL","REPRO","RESPONIND",
-"RETAIL","RGL","RHETAN","RHFL","RHIM","RHL","RICOAUTO","RIIL","RISHABH","RITCO","RITES","RKDL",
-"RKEC","RKFORGE","RKSWAMY","RMC","RMDRIP","RML","RNBDENIMS","ROHLTD","ROLEXRINGS","ROLLT","ROML",
-"ROSSARI","ROSSELLIND","ROSSTECH","ROTO","ROUTE","RPEL","RPGLIFE","RPOWER","RPPINFRA","RPPL",
-"RPSGVENT","RPTECH","RRIL","RRKABEL","RSDFIN","RSL","RSSOFTWARE","RSWM","RSYSTEMS","RTNINDIA",
-"RTNPOWER","RUBFILA","RUBICON","RUBYMILLS","RUCHINFRA","RUCHIRA","RUDRA","RUPA","RUSHIL",
-"RUSTOMJEE","RVHL","RVNL","RVTH","S&SPOWER","SAATVIKGL","SABEVENTS","SADBHAV","SADBHIN",
-"SADHNANIQ","SAFARI","SAGARDEEP","SAGCEM","SAGILITY","SAHLIBHFI","SAHYADRI","SAIL","SAILIFE",
-"SAIPARENT","SAKAR","SAKHTISUG","SAKSOFT","SAKUMA","SALASAR","SALONA","SALSTEEL","SALZERELEC",
-"SAMBHAAV","SAMBHV","SAMHI","SAMMAANCAP","SAMPANN","SANATHAN","SANDESH","SANDHAR","SANDUMA",
-"SANGAMIND","SANGHVIMOV","SANGINITA","SANOFI","SANOFICONR","SANSERA","SANSTAR","SANWARIA",
-"SAPPHIRE","SAPPL","SARDAEN","SAREGAMA","SARLAPOLY","SARVESHWAR","SASKEN","SATIA","SATIN",
-"SAURASHCEM","SAYAJIHOTL","SBC","SBCL","SBFC","SBGLP","SBICARD","SBILIFE","SBIN","SCANSTL",
-"SCHAEFFLER","SCHAND","SCHNEIDER","SCI","SCILAL","SCODATUBES","SCPL","SDBL","SEAMECLTD","SECMARK",
-"SECURKLOUD","SEDEMAC","SEIL","SEJALLTD","SELMC","SEMAC","SENCO","SENORES","SEPC","SERVOTECH",
-"SESHAPAPER","SETCO","SETL","SETUINFRA","SEYAIND","SFL","SGFIN","SGIL","SGL","SGMART","SHADOWFAX",
-"SHAH","SHAH-RE1","SHAHALLOYS","SHAILY","SHAKTIPUMP","SHALBY","SHALPAINTS","SHANKARA","SHANTI",
-"SHANTIGEAR","SHANTIGOLD","SHARDACROP","SHARDAMOTR","SHARDUL","SHAREINDIA","SHBAJRG","SHEKHAWATI",
-"SHEMAROO","SHILCTECH","SHILPAMED","SHINDL","SHIVALIK","SHIVAMAUTO","SHIVAMILLS","SHIVATEX",
-"SHIVAUM","SHK","SHOPERSTOP","SHRADHA","SHREDIGCEM","SHREECEM","SHREEJISPG","SHREEPUSHK",
-"SHREERAMA","SHRENIK","SHREYANIND","SHRIKRISH","SHRINGARMS","SHRIPISTON","SHRIRAMFIN","SHRIRAMPPS",
-"SHYAMCENT","SHYAMMETL","SHYAMTEL","SICAGEN","SICALLOG","SIEMENS","SIGACHI","SIGIND","SIGMA",
-"SIGMAADV","SIGNATURE","SIGNPOST","SIKA","SIKKO","SIL","SILGO","SILINV","SILLYMONKS","SILVERTUC",
-"SIMBHALS","SIMPLEXINF","SINCLAIR","SINDHUTRAD","SINGERIND","SINTERCOM","SIRCA","SIS","SITINET",
-"SIYSIL","SJS","SJVN","SKFINDIA","SKFINDUS","SKIPPER","SKMEGGPROD","SKYGOLD","SMARTLINK",
-"SMARTWORKS","SMCGLOBAL","SMLMAH","SMLT","SMSPHARMA","SNOWMAN","SOBHA","SOFTTECH","SOLARA",
-"SOLARINDS","SOLARWORLD","SOLEX","SOMANYCERA","SOMATEX","SOMICONVEY","SONACOMS","SONAL","SONAMLTD",
-"SONATSOFTW","SOTL","SOUTHBANK","SOUTHWEST","SPAL","SPANDANA","SPARC","SPCENET","SPECIALITY",
-"SPECTRUM","SPENCERS","SPIC","SPLIL","SPLPETRO","SPMLINFRA","SPORTKING","SRD","SREEL","SRF",
-"SRGHFL","SRHHYPOLTD","SRM","SRTL","SSDL","SSWL","STALLION","STANLEY","STAR","STARCEMENT",
-"STARHEALTH","STARPAPER","STARTECK","STCINDIA","STEELCAS","STEELCITY","STEELXIND","STEL",
-"STERTOOLS","STLNETWORK","STLTECH","STOVEKRAFT","STUDDS","STYL","STYLAMIND","STYLEBAAZA",
-"STYRENIX","SUBEXLTD","SUBROS","SUDARCOLOR","SUDARSCHEM","SUDEEPPHRM","SUKHJITS","SULA",
-"SUMEETINDS","SUMICHEM","SUMIT","SUMMITSEC","SUNCLAY","SUNDARAM","SUNDARMFIN","SUNDRMBRAK",
-"SUNDRMFAST","SUNDROP","SUNFLAG","SUNPHARMA","SUNTECK","SUNTV","SUPERHOUSE","SUPERSPIN","SUPRAJIT",
-"SUPREME","SUPREMEENG","SUPREMEIND","SUPREMEINF","SUPRIYA","SURAJEST","SURAJLTD","SURAKSHA",
-"SURANASOL","SURANAT&P","SURYALA","SURYALAXMI","SURYAROSNI","SURYODAY","SUTLEJTEX","SUVEN",
-"SUVIDHAA","SUYOG","SUZLON","SVLL","SVPGLOB","SWANCORP","SWANDEF","SWARAJENG","SWELECTES",
-"SWIGGY","SWSOLAR","SYMPHONY","SYNCOMF","SYNGENE","SYRMA","SYSTMTXC","TAALTECH","TAINWALCHM",
-"TAJGVK","TAKE","TALBROAUTO","TAMBOLIIN","TANLA","TARACHAND","TARAPUR","TARC","TARIL","TARMAT",
-"TARSONS","TASTYBITE","TATACAP","TATACHEM","TATACOMM","TATACONSUM","TATAELXSI","TATAINVEST",
-"TATAPOWER","TATASTEEL","TATATECH","TATVA","TBOTEK","TBZ","TCC","TCI","TCIEXP","TCIFINANCE",
-"TCPLPACK","TCS","TDPOWERSYS","TEAMGTY","TEAMLEASE","TECHM","TECHNOE","TECHNVISN","TECILCHEM",
-"TEGA","TEJASNET","TEMBO","TENNIND","TERASOFT","TEXINFRA","TEXMOPIPES","TEXRAIL","TFCILTD","TFL",
-"TGBHOTELS","THACKER","THAKDEV","THANGAMAYL","THEINVEST","THEJO","THELEELA","THEMISMED","THERMAX",
-"THOMASCOOK","THOMASCOTT","THYROCARE","TI","TICL","TIGERLOGS","TIIL","TIINDIA","TIJARIA","TIL",
-"TIMETECHNO","TIMEX","TIMKEN","TINNARUBR","TIPSFILMS","TIPSMUSIC","TIRUMALCHM","TIRUPATIFL",
-"TITAGARH","TITAN","TMB","TMCV","TMPV","TNPETRO","TNPL","TNTELE","TOKYOPLAST","TOLINS",
-"TORNTPHARM","TORNTPOWER","TOTAL","TOUCHWOOD","TPHQ","TPLPLASTEH","TRACXN","TRANSPEK","TRANSRAILL",
-"TRANSWORLD","TRAVELFOOD","TREEHOUSE","TREJHARA","TREL","TRENT","TRF","TRIDENT","TRIGYN",
-"TRITURBINE","TRIVENI","TRU","TRUALT","TSFINV","TTKHLTCARE","TTKPRESTIG","TTL","TTML","TVSELECT",
-"TVSHLTD","TVSMOTOR","TVSSCS","TVSSRICHAK","TVTODAY","TVVISION","UBL","UCAL","UCOBANK","UDS",
-"UEL","UFBL","UFLEX","UFO","UGARSUGAR","UGROCAP","UJJIVANSFB","ULTRACEMCO","ULTRAMAR","UMAEXPORTS",
-"UMESLTD","UMIYA-MRO","UNICHEMLAB","UNIDT","UNIECOM","UNIENTER","UNIINFO","UNIMECH","UNIONBANK",
-"UNIPARTS","UNITDSPR","UNITECH","UNITEDPOLY","UNITEDTEA","UNIVASTU","UNIVCABLES","UNIVPHOTO",
-"UNOMINDA","UPL","URAVIDEF","URBANCO","URJA","USHAMART","USK","UTIAMC","UTKARSHBNK","UTLSOLAR",
-"UTTAMSUGAR","UYFINCORP","V2RETAIL","VADILALIND","VAIBHAVGBL","VAISHALI","VAKRANGEE","VALIANTLAB",
-"VALIANTORG","VAML","VARDHACRLC","VARDMNPOLY","VARROC","VASCONEQ","VASWANI","VBL","VCL","VEDL",
-"VEDPOWER","VEEDOL","VELJAN","VENKEYS","VENTIVE","VENUSPIPES","VENUSREM","VERANDA","VERTOZ",
-"VESUVIUS","VETO","VGL","VGUARD","VHL","VHLTD","VIDHIING","VIDYAWIRES","VIJAYA","VIJIFIN",
-"VIKASECO","VIKASLIFE","VIKRAMSOLR","VIKRAN","VIMTALABS","VINATIORGA","VINCOFE","VINDHYATEL",
-"VINEETLAB","VINNY","VINYLINDIA","VIPCLOTHNG","VIPIND","VIPULLTD","VIRINCHI","VISACHROME",
-"VISAKAIND","VISHNU","VISHWARAJ","VISL","VITAL","VIVIANA","VIVIDHA","VIVIMEDLAB","VIYASH",
-"VLEGOV","VLSFINANCE","VMART","VMM","VMSTMT","VOGL","VOLTAMP","VOLTAS","VPRPL","VRAJ","VRLLOG",
-"VSSL","VSTIND","VSTL","VSTTILLERS","VTL","WAAREEENER","WAAREEINDO","WAAREERTL","WABAG","WAKEFIT",
-"WALCHANNAG","WANBURY","WCIL","WEALTH","WEBELSOLAR","WEIZMANIND","WEL","WELCORP","WELENT","WELINV",
-"WELSPLSOL","WELSPUNLIV","WENDT","WESTLIFE","WEWIN","WEWORK","WHEELS","WHIRLPOOL","WILLAMAGOR",
-"WINDLAS","WINDMACHIN","WINSOME","WIPL","WIPRO","WOCKPHARMA","WONDERLA","WORTHPERI","WPIL","WSI",
-"WSTCSTPAPR","XCHANGING","XELPMOC","XPROINDIA","XTGLOBAL","YASHO","YATHARTH","YATRA","YESBANK",
-"YUKEN","ZAGGLE","ZEEL","ZEELEARN","ZEEMEDIA","ZENITHEXPO","ZENITHSTL","ZENSARTECH","ZENTEC",
-"ZFCVINDIA","ZFSTEERING","ZIMLAB","ZODIAC","ZODIACLOTH","ZOTA","ZSARACOM","ZUARI","ZUARIIND",
-"ZYDUSLIFE","ZYDUSWELL",
-]
+WATCHLIST = ["RELIANCE", "TCS", "INFY"]  # keep small for testing
 
-# ── Read from Railway environment variables ──────────────────
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL   = "gemini-1.5-flash-8b"
+GROQ_API_KEY   = os.environ.get("GROQ_API_KEY", "")
 
-POLL_INTERVAL  = 3        # seconds between each NSE poll
+POLL_INTERVAL  = 5
 SEEN_FILE      = "seen_announcements.json"
 
 WATCHLIST_SET  = set(s.upper() for s in WATCHLIST)
 
 # ============================================================
-#  NSE SESSION SETUP
+# GROQ CLIENT (INIT ONCE)
+# ============================================================
+
+GROQ_CLIENT = Groq(api_key=GROQ_API_KEY)
+
+# ============================================================
+# NSE SESSION
 # ============================================================
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language":  "en-US,en;q=0.9",
-    "Accept-Encoding":  "gzip, deflate",   # no "br" — avoids Brotli garble bug
-    "Referer":          "https://www.nseindia.com/",
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://www.nseindia.com/",
 }
 
 session = requests.Session()
 session.headers.update(HEADERS)
 
-
 def now():
     return datetime.now().strftime("%H:%M:%S")
 
-
 # ============================================================
-#  HEALTH-CHECK SERVER  (Railway needs an open HTTP port)
+# HEALTH SERVER
 # ============================================================
 
 def start_healthcheck_server():
@@ -325,32 +58,33 @@ def start_healthcheck_server():
             self.end_headers()
             self.wfile.write(b"OK")
 
-        def log_message(self, format, *args):
-            pass   # silence access logs
-
     server = HTTPServer(("0.0.0.0", port), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    print(f"[{now()}] Health-check server on port {port}.")
-
 
 # ============================================================
-#  NSE COOKIE REFRESH
+# NSE HELPERS
 # ============================================================
 
 def refresh_nse_cookies():
     try:
         session.get("https://www.nseindia.com", timeout=10)
-        session.get(
-            "https://www.nseindia.com/companies-listing/corporate-filings-announcements",
-            timeout=10,
-        )
         print(f"[{now()}] NSE cookies refreshed.")
     except Exception as e:
-        print(f"[{now()}] Cookie refresh failed: {e}")
+        print(f"[{now()}] Cookie error: {e}")
 
+def fetch_announcements():
+    url = "https://www.nseindia.com/api/corporate-announcements?index=equities"
+    try:
+        resp = session.get(url, timeout=10)
+        if resp.status_code in (401, 403):
+            refresh_nse_cookies()
+            return []
+        return resp.json()
+    except:
+        return []
 
 # ============================================================
-#  SEEN-ANNOUNCEMENT PERSISTENCE
+# STORAGE
 # ============================================================
 
 def load_seen():
@@ -359,242 +93,142 @@ def load_seen():
             return set(json.load(f))
     return set()
 
-
 def save_seen(seen):
     with open(SEEN_FILE, "w") as f:
         json.dump(list(seen), f)
 
-
 # ============================================================
-#  FETCH NSE ANNOUNCEMENTS
+# PDF TEXT
 # ============================================================
 
-def fetch_announcements():
-    url = "https://www.nseindia.com/api/corporate-announcements?index=equities"
+def download_pdf_text(pdf_url):
     try:
-        resp = session.get(url, timeout=8)
-        if resp.status_code in (401, 403):
-            print(f"[{now()}] Session expired — refreshing cookies.")
-            refresh_nse_cookies()
-            return []
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.JSONDecodeError:
-        print(f"[{now()}] Bad JSON — refreshing cookies.")
-        refresh_nse_cookies()
-        return []
-    except Exception as e:
-        print(f"[{now()}] Fetch error: {e}")
-        return []
+        if not pdf_url.startswith("http"):
+            pdf_url = f"https://nsearchives.nseindia.com/{pdf_url}"
 
-
-# ============================================================
-#  PDF DOWNLOAD + TEXT EXTRACTION
-# ============================================================
-
-def download_pdf_text(pdf_url, max_chars=15000):
-    try:
         resp = session.get(pdf_url, timeout=20)
-        resp.raise_for_status()
         reader = PdfReader(io.BytesIO(resp.content))
+
         text = ""
         for page in reader.pages:
-            text += (page.extract_text() or "") + "\n"
-            if len(text) >= max_chars:
+            text += page.extract_text() or ""
+            if len(text) > 10000:
                 break
-        return text[:max_chars].strip()
+
+        return text[:10000]
+
     except Exception as e:
-        print(f"[{now()}] PDF download/extract failed: {e}")
+        print(f"[{now()}] PDF error: {e}")
         return ""
 
-
 # ============================================================
-#  GEMINI AI SUMMARY  (retries once on 429)
+# AI SUMMARY (GROQ)
 # ============================================================
 
-
-ef summarize_with_groq(pdf_text):
+def summarize_with_groq(pdf_text):
     if not pdf_text:
-        return "(Could not extract text from PDF to summarize.)"
+        return "(No text to summarize)"
 
-    api_key = os.environ.get("GROQ_API_KEY", "")
-    if not api_key:
-        return "(GROQ_API_KEY not set — skipping summary.)"
-
-    client = Groq(api_key=api_key)
+    if not GROQ_API_KEY:
+        return "(No GROQ_API_KEY set)"
 
     prompt = (
-        "Summarize this NSE corporate announcement PDF in exactly 2-3 bullet points. "
-        "Each bullet must be ONE short sentence, under 15 words. "
-        "Keep every number, date, and amount exactly as written. "
-        "No preamble, no headings — only bullets starting with '-'. "
-        "Focus on most material facts.\n\n"
-        f"{pdf_text}"
+        "Summarize in 2-3 bullet points. "
+        "Each bullet under 15 words. Keep numbers exact.\n\n"
+        + pdf_text
     )
 
-    for attempt in range(2):
-        try:
-            chat = client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
+    try:
+        chat = GROQ_CLIENT.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
 
-            return chat.choices[0].message.content.strip()
+        return chat.choices[0].message.content.strip()
 
-        except Exception as e:
-            print(f"Groq error (attempt {attempt+1}): {e}")
-            if attempt == 0:
-                time.sleep(5)
-
-    return "(Summary unavailable — Groq error after retry.)"
-
-
+    except Exception as e:
+        print(f"[{now()}] Groq error: {e}")
+        return "(Summary failed)"
 
 # ============================================================
-#  SEND EMAIL VIA RESEND API  (replaces smtplib — uses HTTPS)
+# EMAIL
 # ============================================================
 
-def send_email(announcement, summary):
-    symbol   = announcement.get("symbol", "N/A")
-    subject  = announcement.get("subject") or announcement.get("attchmntText", "No Subject")
-    an_date  = announcement.get("an_dt") or announcement.get("exchdisstime", "")
-    pdf_link = announcement.get("attchmntFile", "")
+def send_email(item, summary):
+    if not RESEND_API_KEY or not EMAIL_TO:
+        print("Email config missing")
+        return
 
-    if pdf_link and not pdf_link.startswith("http"):
-        pdf_link = f"https://nsearchives.nseindia.com/{pdf_link}"
+    symbol = item.get("symbol", "")
+    subject = item.get("subject", "")
+    pdf = item.get("attchmntFile", "")
 
-    summary_html = summary.replace("\n", "<br>")
+    if pdf and not pdf.startswith("http"):
+        pdf = f"https://nsearchives.nseindia.com/{pdf}"
 
-    body_html = f"""
-    <html><body style="font-family:Arial,sans-serif;padding:20px;">
-      <h2 style="color:#1a1a2e;">NSE Announcement Alert</h2>
-      <table style="border-collapse:collapse;width:100%;">
-        <tr>
-          <td style="padding:8px;font-weight:bold;width:140px;">Company</td>
-          <td style="padding:8px;">{symbol}</td>
-        </tr>
-        <tr style="background:#f5f5f5;">
-          <td style="padding:8px;font-weight:bold;">Subject</td>
-          <td style="padding:8px;">{subject}</td>
-        </tr>
-        <tr>
-          <td style="padding:8px;font-weight:bold;">Time</td>
-          <td style="padding:8px;">{an_date}</td>
-        </tr>
-        <tr style="background:#f5f5f5;">
-          <td style="padding:8px;font-weight:bold;">PDF</td>
-          <td style="padding:8px;">
-            {"<a href='" + pdf_link + "' style='color:#0066cc;'>Click to open PDF</a>"
-             if pdf_link else "No PDF attached"}
-          </td>
-        </tr>
-      </table>
-      <hr>
-      <h3 style="color:#1a1a2e;">AI Summary</h3>
-      <p>{summary_html}</p>
+    html = f"""
+    <html><body>
+    <h2>{symbol}</h2>
+    <p>{subject}</p>
+    <p>{summary.replace("\\n", "<br>")}</p>
+    <a href="{pdf}">Open PDF</a>
     </body></html>
     """
 
-    if not RESEND_API_KEY:
-        print(f"[{now()}] RESEND_API_KEY not set — skipping email.")
-        return
-
-    if not EMAIL_TO:
-        print(f"[{now()}] EMAIL_TO not set — skipping email.")
-        return
-
     try:
-        resp = requests.post(
+        requests.post(
             "https://api.resend.com/emails",
             headers={
                 "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type":  "application/json",
+                "Content-Type": "application/json",
             },
             json={
-                "from":    "onboarding@resend.dev",
-                "to":      [EMAIL_TO],
-                "subject": f"NSE Alert: {symbol} — {subject}",
-                "html":    body_html,
+                "from": "onboarding@resend.dev",
+                "to": [EMAIL_TO],
+                "subject": f"NSE Alert: {symbol}",
+                "html": html,
             },
-            timeout=15,
         )
-        resp.raise_for_status()
-        print(f"[{now()}] EMAIL SENT — {symbol}: {subject}")
+        print(f"[{now()}] Email sent: {symbol}")
     except Exception as e:
-        print(f"[{now()}] Email failed: {e}")
-
+        print(f"Email error: {e}")
 
 # ============================================================
-#  MAIN LOOP
+# MAIN LOOP
 # ============================================================
 
 def main():
     start_healthcheck_server()
-
-    print("=" * 55)
-    print("  NSE Announcement Alert — Started")
-    print(f"  Watching {len(WATCHLIST_SET)} symbols")
-    print(f"  Polling every {POLL_INTERVAL} seconds")
-    print(f"  Email via: Resend API")
-    print("=" * 55)
-
     refresh_nse_cookies()
+
     seen = load_seen()
 
-    if not seen:
-        print(f"[{now()}] First run — seeding existing announcements (no emails)...")
-        data = fetch_announcements()
-        for item in data:
-            seq_id = item.get("an_seq_num") or (
-                f"{item.get('symbol','')}|{item.get('an_dt','')}|{item.get('attchmntFile','')}"
-            )
-            seen.add(seq_id)
-        save_seen(seen)
-        print(f"[{now()}] Seeded {len(seen)} announcements. Now watching for NEW ones.")
-
-    cookie_refresh_counter = 0
-
     while True:
-        try:
-            data = fetch_announcements()
+        data = fetch_announcements()
 
-            for item in data:
-                seq_id = item.get("an_seq_num") or (
-                    f"{item.get('symbol','')}|{item.get('an_dt','')}|{item.get('attchmntFile','')}"
-                )
-                symbol = item.get("symbol", "").upper()
+        for item in data:
+            seq = item.get("an_seq_num")
+            symbol = item.get("symbol", "").upper()
 
-                if seq_id in seen:
-                    continue
+            if seq in seen:
+                continue
+            seen.add(seq)
 
-                seen.add(seq_id)
+            if symbol in WATCHLIST_SET:
+                print(f"[{now()}] NEW: {symbol}")
 
-                if symbol in WATCHLIST_SET:
-                    pdf_link = item.get("attchmntFile", "")
-                    pdf_text = download_pdf_text(pdf_link) if pdf_link else ""
-                    summary  = summarize_with_gemini(pdf_text)
-                    print(f"[{now()}] NEW: {symbol} — {item.get('subject', '')}")
-                    send_email(item, summary)
-                else:
-                    print(f"[{now()}] Skipped (not in watchlist): {symbol}")
+                pdf = item.get("attchmntFile", "")
+                text = download_pdf_text(pdf) if pdf else ""
 
-            save_seen(seen)
+                summary = summarize_with_groq(text)
 
-            cookie_refresh_counter += 1
-            if cookie_refresh_counter >= (600 // POLL_INTERVAL):
-                refresh_nse_cookies()
-                cookie_refresh_counter = 0
+                send_email(item, summary)
 
-            time.sleep(POLL_INTERVAL)
+        save_seen(seen)
+        time.sleep(POLL_INTERVAL)
 
-        except KeyboardInterrupt:
-            print("\nStopped by user.")
-            break
-        except Exception as e:
-            print(f"[{now()}] Unexpected error: {e}. Retrying in 10s.")
-            time.sleep(10)
-
+# ============================================================
 
 if __name__ == "__main__":
     main()
