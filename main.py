@@ -4,6 +4,8 @@ import time
 import json
 import os
 import io
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -16,7 +18,7 @@ from pypdf import PdfReader
 # Add/remove symbols here any time — just keep each one quoted,
 # comma after it, inside these square brackets.
 WATCHLIST = [
- "20MICRONS",
+"20MICRONS",
 "21STCENMGM",
 "360ONE",
 "3BBLACKBIO",
@@ -2426,6 +2428,25 @@ def now():
     return datetime.now().strftime("%H:%M:%S")
 
 
+def start_healthcheck_server():
+    """Runs a tiny HTTP server so Railway's health check sees something alive."""
+    port = int(os.environ.get("PORT", 8080))
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def log_message(self, format, *args):
+            pass  # silence noisy access logs
+
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"[{now()}] Health-check server listening on port {port}.")
+
+
 def refresh_nse_cookies():
     try:
         session.get("https://www.nseindia.com", timeout=10)
@@ -2582,6 +2603,8 @@ def send_email(announcement, summary):
 # ============================================================
 
 def main():
+    start_healthcheck_server()
+
     print("=" * 55)
     print("  NSE Announcement Alert — Started")
     print(f"  Watching {len(WATCHLIST_SET)} symbols")
@@ -2595,7 +2618,10 @@ def main():
         print(f"[{now()}] First run — seeding existing announcements (no emails)...")
         data = fetch_announcements()
         for item in data:
-            seen.add(item.get("an_seq_num", ""))
+            seq_id = item.get("an_seq_num") or (
+                f"{item.get('symbol','')}|{item.get('an_dt','')}|{item.get('attchmntFile','')}"
+            )
+            seen.add(seq_id)
         save_seen(seen)
         print(f"[{now()}] Seeded {len(seen)} existing announcements. Now watching for NEW ones.")
 
@@ -2606,7 +2632,9 @@ def main():
             data = fetch_announcements()
 
             for item in data:
-                seq_id = item.get("an_seq_num", "")
+                seq_id = item.get("an_seq_num") or (
+                    f"{item.get('symbol','')}|{item.get('an_dt','')}|{item.get('attchmntFile','')}"
+                )
                 symbol = item.get("symbol", "").upper()
 
                 if seq_id in seen:
