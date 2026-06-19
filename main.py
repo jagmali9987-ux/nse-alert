@@ -536,55 +536,52 @@ def main():
 
     seen = load_seen()
     log(f"Loaded {len(seen)} previously seen announcements.")
-    log(f"Watching: {sorted(WATCHLIST_SET)}")
 
-poll_count = 0
+    poll_count = 0
 
-while True:
-    try:
-        poll_count += 1
-        data = fetch_announcements()
+    while True:
+        try:
+            poll_count += 1
+            data = fetch_announcements()
 
-        log(f"Poll #{poll_count}: fetched {len(data)} announcements from NSE.")
+            log(f"Poll #{poll_count}: fetched {len(data)} announcements from NSE.")
 
-        # DEBUG - show first 5 announcements from NSE
-        for item in data[:5]:
-            log(
-                f"NSE TEST -> Symbol={item.get('symbol')} | "
-                f"Subject={item.get('subject','')[:60]}"
-            )
+            for item in data[:5]:
+                log(
+                    f"NSE TEST -> Symbol={item.get('symbol')} | "
+                    f"Subject={item.get('subject','')[:60]}"
+                )
 
-        for item in data:
-            seq = item.get("an_seq_num")
-            if seq is None:
-                continue  # skip items without a stable id instead of polluting `seen`
+            for item in data:
+                seq = item.get("an_seq_num")
 
-            if seq in seen:
-                continue
+                if seq is None:
+                    continue
 
-            seen.add(seq)
+                if seq in seen:
+                    continue
 
-            symbol = item.get("symbol", "").upper()
+                seen.add(seq)
 
-            if symbol in WATCHLIST_SET:
-                log(f"NEW: {symbol} - {item.get('subject', '')[:80]}")
+                symbol = item.get("symbol", "").upper()
 
-                pdf = item.get("attchmntFile", "")
-                text = download_pdf_text(pdf) if pdf else ""
+                if symbol in WATCHLIST_SET:
+                    log(f"NEW: {symbol}")
 
-                summary = summarize_with_groq(text)
+                    pdf = item.get("attchmntFile", "")
+                    text = download_pdf_text(pdf) if pdf else ""
 
-                send_email(item, summary)
+                    summary = summarize_with_groq(text)
 
-    seen = save_seen(seen)
+                    send_email(item, summary)
 
-    except Exception:
-        log("Unhandled error in main loop:")
-        traceback.print_exc()
+            seen = save_seen(seen)
 
-    time.sleep(POLL_INTERVAL)
+        except Exception:
+            log("Unhandled error in main loop:")
+            traceback.print_exc()
 
-# ============================================================
+        time.sleep(POLL_INTERVAL)
 
 if __name__ == "__main__":
     main()
