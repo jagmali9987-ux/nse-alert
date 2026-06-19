@@ -3,7 +3,9 @@ import time
 import json
 import os
 import io
+import sys
 import threading
+import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 from pypdf import PdfReader
@@ -19,8 +21,11 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "")
 GROQ_API_KEY   = os.environ.get("GROQ_API_KEY", "")
 
-POLL_INTERVAL  = 5
+POLL_INTERVAL  = 15  # seconds — gentler on NSE than 5s
 SEEN_FILE      = "seen_announcements.json"
+MAX_SEEN       = 5000  # cap so the seen-set doesn't grow forever
+
+GROQ_MODEL     = "llama-3.3-70b-versatile"  # current as of mid-2026; llama3-70b-8192 is deprecated
 
 WATCHLIST_SET  = set(s.upper() for s in WATCHLIST)
 
@@ -28,7 +33,7 @@ WATCHLIST_SET  = set(s.upper() for s in WATCHLIST)
 # GROQ CLIENT (INIT ONCE)
 # ============================================================
 
-GROQ_CLIENT = Groq(api_key=GROQ_API_KEY)
+GROQ_CLIENT = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # ============================================================
 # NSE SESSION
@@ -45,6 +50,10 @@ session.headers.update(HEADERS)
 def now():
     return datetime.now().strftime("%H:%M:%S")
 
+def log(msg):
+    # flush=True so logs show up immediately in containerized/non-TTY environments
+    print(f"[{now()}] {msg}", flush=True)
+
 # ============================================================
 # HEALTH SERVER
 # ============================================================
@@ -58,8 +67,12 @@ def start_healthcheck_server():
             self.end_headers()
             self.wfile.write(b"OK")
 
+        def log_message(self, format, *args):
+            pass  # silence default access logs
+
     server = HTTPServer(("0.0.0.0", port), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    log(f"Healthcheck server listening on :{port}")
 
 # ============================================================
 # NSE HELPERS
@@ -68,19 +81,24 @@ def start_healthcheck_server():
 def refresh_nse_cookies():
     try:
         session.get("https://www.nseindia.com", timeout=10)
-        print(f"[{now()}] NSE cookies refreshed.")
+        log("NSE cookies refreshed.")
     except Exception as e:
-        print(f"[{now()}] Cookie error: {e}")
+        log(f"Cookie error: {e}")
 
 def fetch_announcements():
     url = "https://www.nseindia.com/api/corporate-announcements?index=equities"
     try:
         resp = session.get(url, timeout=10)
         if resp.status_code in (401, 403):
+            log(f"NSE returned {resp.status_code}, refreshing cookies.")
             refresh_nse_cookies()
             return []
+        if resp.status_code != 200:
+            log(f"NSE returned unexpected status {resp.status_code}")
+            return []
         return resp.json()
-    except:
+    except Exception as e:
+        log(f"Fetch error: {e}")
         return []
 
 # ============================================================
@@ -89,13 +107,27 @@ def fetch_announcements():
 
 def load_seen():
     if os.path.exists(SEEN_FILE):
-        with open(SEEN_FILE, "r") as f:
-            return set(json.load(f))
+        try:
+            with open(SEEN_FILE, "r") as f:
+                return set(json.load(f))
+        except Exception as e:
+            log(f"Failed to load seen file, starting fresh: {e}")
+            return set()
     return set()
 
 def save_seen(seen):
-    with open(SEEN_FILE, "w") as f:
-        json.dump(list(seen), f)
+    try:
+        # cap size: keep most recent MAX_SEEN entries (sets are unordered,
+        # so this is a simple soft cap, not strict LRU)
+        trimmed = seen
+        if len(trimmed) > MAX_SEEN:
+            trimmed = set(list(trimmed)[-MAX_SEEN:])
+        with open(SEEN_FILE, "w") as f:
+            json.dump(list(trimmed), f)
+        return trimmed
+    except Exception as e:
+        log(f"Failed to save seen file: {e}")
+        return seen
 
 # ============================================================
 # PDF TEXT
@@ -118,7 +150,7 @@ def download_pdf_text(pdf_url):
         return text[:10000]
 
     except Exception as e:
-        print(f"[{now()}] PDF error: {e}")
+        log(f"PDF error: {e}")
         return ""
 
 # ============================================================
@@ -129,7 +161,7 @@ def summarize_with_groq(pdf_text):
     if not pdf_text:
         return "(No text to summarize)"
 
-    if not GROQ_API_KEY:
+    if not GROQ_CLIENT:
         return "(No GROQ_API_KEY set)"
 
     prompt = (
@@ -140,7 +172,7 @@ def summarize_with_groq(pdf_text):
 
     try:
         chat = GROQ_CLIENT.chat.completions.create(
-            model="llama3-70b-8192",
+            model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
@@ -148,7 +180,7 @@ def summarize_with_groq(pdf_text):
         return chat.choices[0].message.content.strip()
 
     except Exception as e:
-        print(f"[{now()}] Groq error: {e}")
+        log(f"Groq error: {e}")
         return "(Summary failed)"
 
 # ============================================================
@@ -157,7 +189,7 @@ def summarize_with_groq(pdf_text):
 
 def send_email(item, summary):
     if not RESEND_API_KEY or not EMAIL_TO:
-        print("Email config missing")
+        log("Email config missing, skipping send.")
         return
 
     symbol = item.get("symbol", "")
@@ -167,17 +199,19 @@ def send_email(item, summary):
     if pdf and not pdf.startswith("http"):
         pdf = f"https://nsearchives.nseindia.com/{pdf}"
 
+    summary_html = summary.replace("\n", "<br>")
+
     html = f"""
     <html><body>
     <h2>{symbol}</h2>
     <p>{subject}</p>
-    <p>{summary.replace("\\n", "<br>")}</p>
+    <p>{summary_html}</p>
     <a href="{pdf}">Open PDF</a>
     </body></html>
     """
 
     try:
-        requests.post(
+        resp = requests.post(
             "https://api.resend.com/emails",
             headers={
                 "Authorization": f"Bearer {RESEND_API_KEY}",
@@ -189,10 +223,14 @@ def send_email(item, summary):
                 "subject": f"NSE Alert: {symbol}",
                 "html": html,
             },
+            timeout=10,
         )
-        print(f"[{now()}] Email sent: {symbol}")
+        if resp.status_code >= 300:
+            log(f"Email send failed ({resp.status_code}): {resp.text[:200]}")
+        else:
+            log(f"Email sent: {symbol}")
     except Exception as e:
-        print(f"Email error: {e}")
+        log(f"Email error: {e}")
 
 # ============================================================
 # MAIN LOOP
@@ -203,29 +241,42 @@ def main():
     refresh_nse_cookies()
 
     seen = load_seen()
+    log(f"Loaded {len(seen)} previously seen announcements.")
+    log(f"Watching: {sorted(WATCHLIST_SET)}")
 
     while True:
-        data = fetch_announcements()
+        try:
+            data = fetch_announcements()
 
-        for item in data:
-            seq = item.get("an_seq_num")
-            symbol = item.get("symbol", "").upper()
+            for item in data:
+                seq = item.get("an_seq_num")
+                if seq is None:
+                    continue  # skip items without a stable id instead of polluting `seen`
 
-            if seq in seen:
-                continue
-            seen.add(seq)
+                if seq in seen:
+                    continue
+                seen.add(seq)
 
-            if symbol in WATCHLIST_SET:
-                print(f"[{now()}] NEW: {symbol}")
+                symbol = item.get("symbol", "").upper()
 
-                pdf = item.get("attchmntFile", "")
-                text = download_pdf_text(pdf) if pdf else ""
+                if symbol in WATCHLIST_SET:
+                    log(f"NEW: {symbol} - {item.get('subject', '')[:80]}")
 
-                summary = summarize_with_groq(text)
+                    pdf = item.get("attchmntFile", "")
+                    text = download_pdf_text(pdf) if pdf else ""
 
-                send_email(item, summary)
+                    summary = summarize_with_groq(text)
 
-        save_seen(seen)
+                    send_email(item, summary)
+
+            seen = save_seen(seen)
+
+        except Exception:
+            # Top-level guard: log the full traceback instead of letting the
+            # process die silently and the container exit.
+            log("Unhandled error in main loop:")
+            traceback.print_exc()
+
         time.sleep(POLL_INTERVAL)
 
 # ============================================================
