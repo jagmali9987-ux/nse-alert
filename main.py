@@ -456,6 +456,8 @@ def send_email(item, summary):
         return
 
     symbol = item.get("symbol", "")
+    if symbol in WATCHLIST_SET:
+        log(f"MATCH FOUND: {symbol}")
     subject = item.get("subject", "")
     pdf = item.get("attchmntFile", "")
 
