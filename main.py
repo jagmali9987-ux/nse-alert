@@ -661,12 +661,11 @@ def main():
                 seen.add(seq)
                 new_count += 1
 
-                symbol = item.get("symbol", "").upper().strip()
+                symbol = item.get("symbol", "").upper()
 
-                if symbol not in WATCHLIST_SET:
-                    continue
-
-                log(f"🔔 WATCHLIST MATCH: {symbol} | {item.get('subject','')[:60]}")
+                if symbol in WATCHLIST_SET:
+                    log(f"MATCH FOUND: {symbol}")
+                    log(f"NEW: {symbol}")
 
                 pdf     = item.get("attchmntFile", "")
                 text    = download_pdf_text(pdf) if pdf else ""
