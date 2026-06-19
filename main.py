@@ -15,16 +15,6 @@ from groq import Groq
 # CONFIG
 # ============================================================
 
-WATCHLIST = [import requests
-import time
-import json
-import os
-import io
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from datetime import datetime
-from pypdf import PdfReader
-from groq import Groq
 
 # ============================================================
 #  CONFIG — set these as Railway environment variables
