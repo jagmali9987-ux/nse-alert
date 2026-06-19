@@ -14,7 +14,7 @@ EMAIL_TO         = os.environ.get("EMAIL_TO", "")
 GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL     = "gemini-2.5-flash"
 
-SEARCH_TERM = ""20MICRONS",
+SEARCH_TERM = "20MICRONS",
 "21STCENMGM",
 "360ONE",
 "3BBLACKBIO",
