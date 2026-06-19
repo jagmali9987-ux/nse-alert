@@ -1,5 +1,6 @@
 import requests
 import smtplib
+import time
 import json
 import os
 import io
@@ -8,13 +9,14 @@ from email.mime.text import MIMEText
 from datetime import datetime
 from pypdf import PdfReader
 
-EMAIL_SENDER     = os.environ.get("EMAIL_SENDER", "")
-EMAIL_PASSWORD   = os.environ.get("EMAIL_PASSWORD", "")
-EMAIL_TO         = os.environ.get("EMAIL_TO", "")
-GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL     = "gemini-2.5-flash"
+# ============================================================
+#  CONFIG — edit these or set as Railway environment variables
+# ============================================================
 
-SEARCH_TERM = "20MICRONS",
+# Add/remove symbols here any time — just keep each one quoted,
+# comma after it, inside these square brackets.
+WATCHLIST = [
+ "20MICRONS",
 "21STCENMGM",
 "360ONE",
 "3BBLACKBIO",
@@ -2388,7 +2390,22 @@ SEARCH_TERM = "20MICRONS",
 "ZUARIIND",
 "ZYDUSLIFE",
 "ZYDUSWELL",
-"
+]
+
+EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
+EMAIL_TO       = os.environ.get("EMAIL_TO", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL   = "gemini-2.5-flash"
+
+POLL_INTERVAL  = 3   # seconds between each NSE check
+SEEN_FILE      = "seen_announcements.json"
+
+WATCHLIST_SET = set(s.upper() for s in WATCHLIST)
+
+# ============================================================
+#  NSE SESSION SETUP
+# ============================================================
 
 HEADERS = {
     "User-Agent": (
@@ -2397,7 +2414,7 @@ HEADERS = {
         "Chrome/124.0.0.0 Safari/537.36"
     ),
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate",
+    "Accept-Encoding": "gzip, deflate",   # no "br" — avoids the Brotli garble bug
     "Referer": "https://www.nseindia.com/",
 }
 
@@ -2410,29 +2427,58 @@ def now():
 
 
 def refresh_nse_cookies():
-    session.get("https://www.nseindia.com", timeout=10)
-    session.get("https://www.nseindia.com/companies-listing/corporate-filings-announcements", timeout=10)
-    print(f"[{now()}] NSE cookies refreshed.")
+    try:
+        session.get("https://www.nseindia.com", timeout=10)
+        session.get("https://www.nseindia.com/companies-listing/corporate-filings-announcements", timeout=10)
+        print(f"[{now()}] NSE cookies refreshed.")
+    except Exception as e:
+        print(f"[{now()}] Cookie refresh failed: {e}")
 
+
+# ============================================================
+#  LOAD / SAVE SEEN ANNOUNCEMENTS
+# ============================================================
+
+def load_seen():
+    if os.path.exists(SEEN_FILE):
+        with open(SEEN_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+
+def save_seen(seen):
+    with open(SEEN_FILE, "w") as f:
+        json.dump(list(seen), f)
+
+
+# ============================================================
+#  FETCH NSE ANNOUNCEMENTS
+# ============================================================
 
 def fetch_announcements():
     url = "https://www.nseindia.com/api/corporate-announcements?index=equities"
-    resp = session.get(url, timeout=8)
-    resp.raise_for_status()
-    return resp.json()
+    try:
+        resp = session.get(url, timeout=8)
+        if resp.status_code in (401, 403):
+            print(f"[{now()}] Session expired — refreshing cookies.")
+            refresh_nse_cookies()
+            return []
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.JSONDecodeError:
+        print(f"[{now()}] Bad JSON — refreshing cookies.")
+        refresh_nse_cookies()
+        return []
+    except Exception as e:
+        print(f"[{now()}] Fetch error: {e}")
+        return []
 
 
-def find_match(data, term):
-    matches = []
-    for item in data:
-        blob = json.dumps(item).upper()
-        if term.upper() in blob:
-            matches.append(item)
-    return matches
-
+# ============================================================
+#  PDF DOWNLOAD + AI SUMMARY
+# ============================================================
 
 def download_pdf_text(pdf_url, max_chars=15000):
-    """Download the PDF and extract its text content."""
     try:
         resp = session.get(pdf_url, timeout=20)
         resp.raise_for_status()
@@ -2449,7 +2495,6 @@ def download_pdf_text(pdf_url, max_chars=15000):
 
 
 def summarize_with_gemini(pdf_text):
-    """Send extracted PDF text to Gemini for a short summary."""
     if not pdf_text:
         return "(Could not extract text from PDF to summarize.)"
     if not GEMINI_API_KEY:
@@ -2480,64 +2525,119 @@ def summarize_with_gemini(pdf_text):
         return f"(Summary unavailable — Gemini error: {e})"
 
 
-def send_raw_email(item, summary):
-    pretty = json.dumps(item, indent=2)
+# ============================================================
+#  SEND EMAIL ALERT
+# ============================================================
 
-    pdf_link = item.get("attchmntFile", "")
-    text_blob = item.get("attchmntText") or item.get("subject") or "See full details below."
-    date_field = item.get("an_dt") or item.get("exchdisstime") or ""
+def send_email(announcement, summary):
+    symbol   = announcement.get("symbol", "N/A")
+    subject  = announcement.get("subject") or announcement.get("attchmntText", "No Subject")
+    an_date  = announcement.get("an_dt") or announcement.get("exchdisstime", "")
+    pdf_link = announcement.get("attchmntFile", "")
+
+    if pdf_link and not pdf_link.startswith("http"):
+        pdf_link = f"https://nsearchives.nseindia.com/{pdf_link}"
 
     summary_html = summary.replace("\n", "<br>")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"NSE Alert (manual fetch): {SEARCH_TERM}"
+    msg["Subject"] = f"NSE Alert: {symbol} — {subject}"
     msg["From"]    = EMAIL_SENDER
     msg["To"]      = EMAIL_TO
 
     body_html = f"""
     <html><body style="font-family:Arial,sans-serif;padding:20px;">
-      <h2 style="color:#1a1a2e;">NSE Announcement — {SEARCH_TERM}</h2>
-      <p><b>Date/time:</b> {date_field}</p>
-      <p><b>Details:</b> {text_blob}</p>
-      <p><b>PDF:</b> {"<a href='" + pdf_link + "'>Open PDF</a>" if pdf_link else "No PDF found"}</p>
+      <h2 style="color:#1a1a2e;">NSE Announcement Alert</h2>
+      <table style="border-collapse:collapse;width:100%;">
+        <tr><td style="padding:8px;font-weight:bold;width:140px;">Company</td>
+            <td style="padding:8px;">{symbol}</td></tr>
+        <tr style="background:#f5f5f5;"><td style="padding:8px;font-weight:bold;">Subject</td>
+            <td style="padding:8px;">{subject}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">Time</td>
+            <td style="padding:8px;">{an_date}</td></tr>
+        <tr style="background:#f5f5f5;"><td style="padding:8px;font-weight:bold;">PDF</td>
+            <td style="padding:8px;">
+              {"<a href='" + pdf_link + "' style='color:#0066cc;'>Click to open PDF</a>" if pdf_link else "No PDF attached"}
+            </td></tr>
+      </table>
       <hr>
-      <h3 style="color:#1a1a2e;">AI Summary (Gemini)</h3>
+      <h3 style="color:#1a1a2e;">AI Summary</h3>
       <p>{summary_html}</p>
-      <hr>
-      <p style="font-size:12px;color:#666;">Raw fields received from NSE (for debugging):</p>
-      <pre style="background:#f5f5f5;padding:10px;font-size:11px;">{pretty}</pre>
     </body></html>
     """
+
     msg.attach(MIMEText(body_html, "html"))
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_SENDER, EMAIL_TO, msg.as_string())
-    print(f"[{now()}] Email sent for {SEARCH_TERM}.")
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_SENDER, EMAIL_TO, msg.as_string())
+        print(f"[{now()}] EMAIL SENT — {symbol}: {subject}")
+    except Exception as e:
+        print(f"[{now()}] Email failed: {e}")
 
+
+# ============================================================
+#  MAIN LOOP
+# ============================================================
 
 def main():
+    print("=" * 55)
+    print("  NSE Announcement Alert — Started")
+    print(f"  Watching {len(WATCHLIST_SET)} symbols")
+    print(f"  Polling every {POLL_INTERVAL} seconds")
+    print("=" * 55)
+
     refresh_nse_cookies()
-    data = fetch_announcements()
-    print(f"[{now()}] Fetched {len(data)} announcements.")
+    seen = load_seen()
 
-    matches = find_match(data, SEARCH_TERM)
-    if not matches:
-        print(f"[{now()}] No match found for '{SEARCH_TERM}' in current feed.")
-        return
+    if not seen:
+        print(f"[{now()}] First run — seeding existing announcements (no emails)...")
+        data = fetch_announcements()
+        for item in data:
+            seen.add(item.get("an_seq_num", ""))
+        save_seen(seen)
+        print(f"[{now()}] Seeded {len(seen)} existing announcements. Now watching for NEW ones.")
 
-    item = matches[0]
-    print(f"[{now()}] Found {len(matches)} match(es). Full raw record below:\n")
-    print(json.dumps(item, indent=2))
+    cookie_refresh_counter = 0
 
-    pdf_link = item.get("attchmntFile", "")
-    pdf_text = download_pdf_text(pdf_link) if pdf_link else ""
-    print(f"[{now()}] Extracted {len(pdf_text)} chars from PDF.")
+    while True:
+        try:
+            data = fetch_announcements()
 
-    summary = summarize_with_gemini(pdf_text)
-    print(f"[{now()}] Summary:\n{summary}")
+            for item in data:
+                seq_id = item.get("an_seq_num", "")
+                symbol = item.get("symbol", "").upper()
 
-    send_raw_email(item, summary)
+                if seq_id in seen:
+                    continue
+
+                seen.add(seq_id)
+
+                if symbol in WATCHLIST_SET:
+                    pdf_link = item.get("attchmntFile", "")
+                    pdf_text = download_pdf_text(pdf_link) if pdf_link else ""
+                    summary = summarize_with_gemini(pdf_text)
+                    print(f"[{now()}] NEW: {symbol} — {item.get('subject', '')}")
+                    send_email(item, summary)
+                else:
+                    print(f"[{now()}] Skipped (not in watchlist): {symbol}")
+
+            save_seen(seen)
+
+            cookie_refresh_counter += 1
+            if cookie_refresh_counter >= (600 // POLL_INTERVAL):
+                refresh_nse_cookies()
+                cookie_refresh_counter = 0
+
+            time.sleep(POLL_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\nStopped by user.")
+            break
+        except Exception as e:
+            print(f"[{now()}] Unexpected error: {e}. Retrying in 10s.")
+            time.sleep(10)
 
 
 if __name__ == "__main__":
