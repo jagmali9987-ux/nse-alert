@@ -540,42 +540,49 @@ def main():
 
     poll_count = 0
 
-    while True:
-        try:
-            poll_count += 1
-            data = fetch_announcements()
-            log(f"Poll #{poll_count}: fetched {len(data)} announcements from NSE.")
+while True:
+    try:
+        poll_count += 1
+        data = fetch_announcements()
 
-            for item in data:
-                seq = item.get("an_seq_num")
-                if seq is None:
-                    continue  # skip items without a stable id instead of polluting `seen`
+        log(f"Poll #{poll_count}: fetched {len(data)} announcements from NSE.")
 
-                if seq in seen:
-                    continue
-                seen.add(seq)
+        # DEBUG - show first 5 announcements from NSE
+        for item in data[:5]:
+            log(
+                f"NSE TEST -> Symbol={item.get('symbol')} | "
+                f"Subject={item.get('subject','')[:60]}"
+            )
 
-                symbol = item.get("symbol", "").upper()
+        for item in data:
+            seq = item.get("an_seq_num")
+            if seq is None:
+                continue  # skip items without a stable id instead of polluting `seen`
 
-                if symbol in WATCHLIST_SET:
-                    log(f"NEW: {symbol} - {item.get('subject', '')[:80]}")
+            if seq in seen:
+                continue
 
-                    pdf = item.get("attchmntFile", "")
-                    text = download_pdf_text(pdf) if pdf else ""
+            seen.add(seq)
 
-                    summary = summarize_with_groq(text)
+            symbol = item.get("symbol", "").upper()
 
-                    send_email(item, summary)
+            if symbol in WATCHLIST_SET:
+                log(f"NEW: {symbol} - {item.get('subject', '')[:80]}")
 
-            seen = save_seen(seen)
+                pdf = item.get("attchmntFile", "")
+                text = download_pdf_text(pdf) if pdf else ""
 
-        except Exception:
-            # Top-level guard: log the full traceback instead of letting the
-            # process die silently and the container exit.
-            log("Unhandled error in main loop:")
-            traceback.print_exc()
+                summary = summarize_with_groq(text)
 
-        time.sleep(POLL_INTERVAL)
+                send_email(item, summary)
+
+        seen = save_seen(seen)
+
+    except Exception:
+        log("Unhandled error in main loop:")
+        traceback.print_exc()
+
+    time.sleep(POLL_INTERVAL)
 
 # ============================================================
 
