@@ -281,7 +281,7 @@ WATCHLIST = [
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL   = "gemini-2.5-flash"
+GEMINI_MODEL   = "gemini-1.5-flash-8b"
 
 POLL_INTERVAL  = 3        # seconds between each NSE poll
 SEEN_FILE      = "seen_announcements.json"
